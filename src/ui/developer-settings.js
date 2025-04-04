@@ -1,6 +1,6 @@
 import { getBuildInfo, getTimeSinceBuild, getBundleVersion } from '../utils/build-info';
 import { getDesktopVersion } from '../utils/compatibility';
-import { Name } from '@utils/constants';
+import { Name } from '../utils/constants';
 
 /**
  * Create and populate the developer settings panel

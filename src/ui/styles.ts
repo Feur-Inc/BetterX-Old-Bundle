@@ -14,7 +14,9 @@ export function injectUIStyles() {
     .betterx-notification-message,
     .betterx-notification-source,
     .betterx-notification-action,
-    .betterx-developer-heading {
+    .betterx-developer-heading,
+    .betterx-cloud-header h2,
+    .betterx-cloud-section h3 {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
     
@@ -938,6 +940,120 @@ export function injectUIStyles() {
     /* Add spacing between plugin options and authors */
     .betterx-plugin-options {
       margin-top: 8px;
+    }
+
+    /* Cloud Tab Styles */
+    .betterx-cloud-container {
+      max-width: 100%;
+      padding: 0 16px;
+    }
+    
+    .betterx-cloud-header {
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--betterx-borderColor);
+      padding-bottom: 16px;
+    }
+    
+    .betterx-cloud-header h2 {
+      margin: 0 0 8px 0;
+      font-size: 24px;
+    }
+    
+    .betterx-cloud-header p {
+      margin: 0;
+      color: var(--betterx-textColorSecondary);
+    }
+    
+    .betterx-cloud-section {
+      margin-bottom: 24px;
+      padding: 16px;
+      border-radius: 8px;
+      background-color: var(--betterx-contentBg);
+      border: 1px solid var(--betterx-borderColor);
+    }
+    
+    .betterx-cloud-section h3 {
+      margin: 0 0 16px 0;
+      font-size: 18px;
+    }
+    
+    .betterx-cloud-login {
+      padding: 24px;
+      border-radius: 8px;
+      background-color: var(--betterx-contentBg);
+      text-align: center;
+      border: 1px solid var(--betterx-borderColor);
+    }
+    
+    .betterx-cloud-login p {
+      margin-bottom: 16px;
+    }
+    
+    .betterx-cloud-auth-section {
+      margin-bottom: 24px;
+    }
+    
+    .betterx-cloud-user-info {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      border-radius: 8px;
+      background-color: var(--betterx-contentBg);
+      border: 1px solid var(--betterx-borderColor);
+      margin-bottom: 24px;
+    }
+    
+    .betterx-cloud-user-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      overflow: hidden;
+      margin-right: 16px;
+    }
+    
+    .betterx-cloud-user-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .betterx-cloud-user-details {
+      flex-grow: 1;
+    }
+    
+    .betterx-cloud-user-details h4 {
+      margin: 0 0 4px 0;
+      font-size: 14px;
+      color: var(--betterx-textColorSecondary);
+    }
+    
+    .betterx-cloud-user-details p {
+      margin: 0;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    
+    .betterx-cloud-sync-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .betterx-cloud-sync-info p {
+      margin: 0;
+      color: var(--betterx-textColorSecondary);
+    }
+    
+    .betterx-cloud-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    
+    #betterx-cloud-sync-details {
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--betterx-textColorSecondary);
     }
   `;
   document.head.appendChild(styles);

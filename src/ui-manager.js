@@ -298,6 +298,21 @@ export class UIManager {
     }
   }
 
+  /**
+   * Initialize the developer tab UI
+   * @param {HTMLElement} container - The container element for the developer tab
+   */
+  initializeDeveloperUI(container) {
+    if (!container) {
+      console.error('Developer tab container is null');
+      return;
+    }
+    
+    // Directly populate the provided container
+    populateDeveloperSettings(container, this);
+    this.developerTabVisited = true;
+  }
+
   addBetterXTab() {
     addBetterXTab(this);
   }
@@ -368,16 +383,6 @@ export class UIManager {
    */
   removeNotification(id) {
     return this.notifications.removeNotification(id);
-  }
-
-  /**
-   * Initialize the developer tab UI
-   * @param {HTMLElement} modal - The settings modal
-   */
-  initializeDeveloperUI(modal) {
-    const developerContainer = modal.querySelector('#betterx-developer-tab');
-    populateDeveloperSettings(developerContainer, this);
-    this.developerTabVisited = true;
   }
 
   async injectBetterXUI() {
