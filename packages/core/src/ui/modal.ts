@@ -2,7 +2,7 @@ import type { BetterXContext, SettingsTab } from "./tab-registry.js";
 import { TabRegistry } from "./tab-registry.js";
 import { BETTERX_STYLES } from "./styles.js";
 import { injectStyle } from "../utils/dom.js";
-import { BETTERX_VERSION, BETTERX_LOGO_URL } from "../utils/constants.js";
+import { BETTERX_VERSION } from "../utils/constants.js";
 
 // ─── Settings Modal ───────────────────────────────────────────────────────────
 
@@ -17,12 +17,11 @@ export class SettingsModal {
 
   constructor(ctx: BetterXContext) {
     this.ctx = ctx;
+    injectStyle(BETTERX_STYLES, STYLE_ID);
   }
 
   open(): void {
     if (document.getElementById(OVERLAY_ID)) return;
-
-    injectStyle(BETTERX_STYLES, STYLE_ID);
 
     const overlay = document.createElement("div");
     overlay.id = OVERLAY_ID;
@@ -126,13 +125,13 @@ export class SettingsModal {
       <div id="betterx-modal" role="dialog" aria-modal="true" aria-label="BetterX Settings">
         <div class="betterx-modal-header">
           <div class="betterx-modal-title">
-            <img class="betterx-modal-title-logo" src="${BETTERX_LOGO_URL}" alt="BetterX" />
+            ${this.ctx.logoUrl ? `<img class="betterx-modal-title-logo" src="${this.ctx.logoUrl}" alt="BetterX" />` : ""}
             BetterX Settings
-            <span style="font-size:11px;font-weight:400;color:var(--betterx-textColorSecondary)">v${BETTERX_VERSION}</span>
+            <span class="betterx-modal-version">v${BETTERX_VERSION}</span>
           </div>
-          <div class="betterx-tabs">${tabButtons}</div>
           <button class="betterx-modal-close" aria-label="Close">✕</button>
         </div>
+        <div class="betterx-tabs" role="tablist">${tabButtons}</div>
         <div class="betterx-modal-body">${tabPanels}</div>
       </div>
     `;

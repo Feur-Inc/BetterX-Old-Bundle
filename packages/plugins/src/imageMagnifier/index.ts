@@ -51,7 +51,7 @@ export default definePlugin({
     magSize = this.settings.store.magnifierSize;
 
     const style = document.createElement("style");
-    style.textContent = `.bx-magnifier{position:fixed;border:2px solid #333;border-radius:50%;pointer-events:none;display:none;background-repeat:no-repeat;z-index:10000;overflow:hidden;}`;
+    style.textContent = `.bx-magnifier{position:fixed;border:2px solid #333;border-radius:50%;pointer-events:none;display:none;background-repeat:no-repeat;z-index:10000;overflow:hidden;}[data-testid="swipe-to-dismiss"] img{user-select:none;-webkit-user-drag:none;}`;
     document.head.appendChild(style);
     magStyle = style;
 
@@ -64,6 +64,7 @@ export default definePlugin({
     magOnMouseDown = (e: MouseEvent): void => {
       const img = (e.target as HTMLElement).closest<HTMLImageElement>('[data-testid="swipe-to-dismiss"] img');
       if (!img) return;
+      e.preventDefault();
       magCurrentImg = img;
       magIsActive = true;
       if (magEl) {

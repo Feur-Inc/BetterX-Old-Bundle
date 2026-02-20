@@ -31,4 +31,7 @@ export type ElectronAPI = {
 
   // App info
   getVersion(): string;
+
+  // App control
+  restart(): void;
 };

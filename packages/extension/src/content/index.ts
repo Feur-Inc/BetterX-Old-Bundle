@@ -48,7 +48,8 @@ async function init(): Promise<void> {
   applyAccentColor();
 
   // 7. Register built-in tabs
-  const ctx = { pluginManager, themeManager, notifications };
+  const logoUrl = chrome.runtime.getURL("icons/icon128.png");
+  const ctx = { pluginManager, themeManager, notifications, logoUrl };
   TabRegistry.register(PluginsTab);
   TabRegistry.register(ThemesTab);
   TabRegistry.register(DeveloperTab);
@@ -59,8 +60,8 @@ async function init(): Promise<void> {
 
   // 9. Inject nav button + watch for SPA navigation removing it
   const openModal = (): void => modal.toggle();
-  injectNavButton(openModal);
-  watchNavButton(openModal);
+  injectNavButton(openModal, logoUrl);
+  watchNavButton(openModal, logoUrl);
 
   // 10. Inject footer badge
   injectFooterBadge(openModal);

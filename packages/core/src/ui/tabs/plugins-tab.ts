@@ -21,6 +21,7 @@ function renderOptions(container: HTMLElement, plugin: Plugin, ctx: BetterXConte
     row.className = "betterx-option";
 
     const labelGroup = document.createElement("div");
+    labelGroup.className = "betterx-option-label-group";
     const label = document.createElement("div");
     label.className = "betterx-option-label";
     label.textContent = opt.label ?? key;
@@ -151,10 +152,11 @@ function renderPlugin(plugin: Plugin, ctx: BetterXContext): HTMLElement {
         badge.innerHTML = `
           <img class="betterx-author-avatar"
                src="https://unavatar.io/twitter/${escHtml(author.handle)}"
-               alt="${escHtml(author.name)}"
-               onerror="this.style.display='none'">
+               alt="${escHtml(author.name)}">
           @${escHtml(author.handle)}
         `;
+        const avatar = badge.querySelector<HTMLImageElement>("img");
+        if (avatar) avatar.addEventListener("error", () => { avatar.style.display = "none"; });
         authors.appendChild(badge);
       }
       body.appendChild(authors);
@@ -187,11 +189,30 @@ export const PluginsTab: SettingsTab = {
   initialize(container: HTMLElement, ctx: BetterXContext): void {
     container.innerHTML = "";
 
-    // Search
+    // Toolbar: search + view toggle
+    const toolbar = document.createElement("div");
+    toolbar.className = "betterx-plugins-toolbar";
+
     const search = document.createElement("input");
     search.type = "search";
     search.className = "betterx-search-bar";
     search.placeholder = "Search plugins…";
+
+    const viewToggle = document.createElement("div");
+    viewToggle.className = "betterx-view-toggle";
+
+    const listBtn = document.createElement("button");
+    listBtn.className = "betterx-view-btn betterx-view-btn-active";
+    listBtn.title = "List view";
+    listBtn.innerHTML = `<svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16"><rect x="0" y="1" width="16" height="2.5" rx="1"/><rect x="0" y="6.75" width="16" height="2.5" rx="1"/><rect x="0" y="12.5" width="16" height="2.5" rx="1"/></svg>`;
+
+    const gridBtn = document.createElement("button");
+    gridBtn.className = "betterx-view-btn";
+    gridBtn.title = "Grid view";
+    gridBtn.innerHTML = `<svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16"><rect x="0" y="0" width="7" height="7" rx="1"/><rect x="9" y="0" width="7" height="7" rx="1"/><rect x="0" y="9" width="7" height="7" rx="1"/><rect x="9" y="9" width="7" height="7" rx="1"/></svg>`;
+
+    viewToggle.append(listBtn, gridBtn);
+    toolbar.append(search, viewToggle);
 
     const list = document.createElement("div");
     list.className = "betterx-plugin-list";
@@ -199,6 +220,18 @@ export const PluginsTab: SettingsTab = {
     const plugins = ctx.pluginManager.getAll();
     const items = plugins.map((p) => ({ plugin: p, el: renderPlugin(p, ctx) }));
     for (const { el } of items) list.appendChild(el);
+
+    listBtn.addEventListener("click", () => {
+      list.classList.remove("betterx-grid-view");
+      listBtn.classList.add("betterx-view-btn-active");
+      gridBtn.classList.remove("betterx-view-btn-active");
+    });
+
+    gridBtn.addEventListener("click", () => {
+      list.classList.add("betterx-grid-view");
+      gridBtn.classList.add("betterx-view-btn-active");
+      listBtn.classList.remove("betterx-view-btn-active");
+    });
 
     search.addEventListener("input", () => {
       const q = search.value.toLowerCase();
@@ -210,7 +243,7 @@ export const PluginsTab: SettingsTab = {
       }
     });
 
-    container.append(search, list);
+    container.append(toolbar, list);
   },
 
   onActivate(container: HTMLElement, ctx: BetterXContext): void {

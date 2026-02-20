@@ -12,6 +12,7 @@ export default defineConfig({
     },
     outDir: "dist/bundle",
     emptyOutDir: true,
+    sourcemap: true,
     rollupOptions: {
       // All deps bundled into the IIFE
       external: [],

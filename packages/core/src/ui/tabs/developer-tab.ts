@@ -17,15 +17,14 @@ export const DeveloperTab: SettingsTab = {
     pluginSection.innerHTML = `<h3>Plugin States</h3>`;
 
     const pluginList = document.createElement("div");
-    pluginList.style.cssText =
-      "font-family:monospace;font-size:12px;color:var(--betterx-textColorSecondary);max-height:200px;overflow-y:auto;";
+    pluginList.className = "betterx-dev-plugin-list";
 
     const updatePluginList = (): void => {
       const plugins = ctx.pluginManager.getAll();
       pluginList.innerHTML = plugins
         .map(
           (p) =>
-            `<div style="padding:2px 0;"><strong style="color:var(--betterx-textColor)">${p.name}</strong>: ${p.enabled ? "✅ enabled" : "❌ disabled"}</div>`
+            `<div class="betterx-dev-plugin-row"><strong class="betterx-dev-plugin-name">${p.name}</strong>: ${p.enabled ? "enabled" : "disabled"}</div>`
         )
         .join("");
     };

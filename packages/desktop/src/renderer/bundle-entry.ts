@@ -23,6 +23,7 @@ import {
 import { BETTERX_STYLES } from "@betterx/core";
 import { allPlugins } from "@betterx/plugins";
 import { DesktopStorage } from "./platform.js";
+import { DesktopTab } from "./desktop-tab.js";
 
 let initialized = false;
 
@@ -52,9 +53,11 @@ async function init(): Promise<void> {
   applyAccentColor();
 
   // 7. Register tabs
-  const ctx = { pluginManager, themeManager, notifications };
+  const logoUrl = "betterx://assets/icon.png";
+  const ctx = { pluginManager, themeManager, notifications, logoUrl };
   TabRegistry.register(PluginsTab);
   TabRegistry.register(ThemesTab);
+  TabRegistry.register(DesktopTab);
   TabRegistry.register(DeveloperTab);
   TabRegistry.register(AboutTab);
 
@@ -62,9 +65,12 @@ async function init(): Promise<void> {
   const modal = new SettingsModal(ctx);
   const openModal = (): void => modal.toggle();
 
+  // Expose for tray "Settings" menu item
+  (window as typeof window & { __betterx_open_settings?: () => void }).__betterx_open_settings = () => modal.open();
+
   // 9. Nav button
-  injectNavButton(openModal);
-  watchNavButton(openModal);
+  injectNavButton(openModal, logoUrl);
+  watchNavButton(openModal, logoUrl);
 
   // 10. Footer
   injectFooterBadge(openModal);

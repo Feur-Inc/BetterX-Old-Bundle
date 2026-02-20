@@ -1,5 +1,5 @@
 import { BrowserWindow, protocol, app, shell } from "electron";
-import { join } from "path";
+import { join, resolve } from "path";
 import { readFile, access } from "fs/promises";
 import { logger } from "@betterx/core";
 
@@ -7,9 +7,14 @@ import { logger } from "@betterx/core";
 
 const BUNDLE_PATH_KEY = "betterx_bundle_path";
 let bundlePath: string | null = null;
+let assetsPath: string | null = null;
 
 export function setBundlePath(path: string): void {
   bundlePath = path;
+}
+
+export function setAssetsPath(path: string): void {
+  assetsPath = path;
 }
 
 /**
@@ -54,6 +59,33 @@ export function handleBetterxProtocol(): void {
         });
       }
     }
+    // Serve static assets (logo, icons, etc.)
+    if (url.hostname === "assets" && assetsPath) {
+      const filename = url.pathname.slice(1); // strip leading /
+      const filePath = resolve(assetsPath, filename);
+      // Security: prevent path traversal
+      if (!filePath.startsWith(resolve(assetsPath))) {
+        return new Response("Forbidden", { status: 403 });
+      }
+      try {
+        const content = await readFile(filePath);
+        const ext = filename.split(".").pop() ?? "";
+        const mimeTypes: Record<string, string> = {
+          png: "image/png",
+          jpg: "image/jpeg",
+          jpeg: "image/jpeg",
+          svg: "image/svg+xml",
+          ico: "image/x-icon",
+        };
+        return new Response(new Uint8Array(content), {
+          status: 200,
+          headers: { "Content-Type": mimeTypes[ext] ?? "application/octet-stream" },
+        });
+      } catch {
+        return new Response("Not found", { status: 404 });
+      }
+    }
+
     return new Response("Not found", { status: 404 });
   });
 }

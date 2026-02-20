@@ -23,17 +23,51 @@ export const ThemesTab: SettingsTab = {
 
     // Toolbar
     const toolbar = document.createElement("div");
-    toolbar.style.cssText =
-      "display:flex;gap:8px;margin-bottom:16px;align-items:center;";
+    toolbar.className = "betterx-themes-toolbar";
 
     const newBtn = document.createElement("button");
     newBtn.className = "betterx-btn betterx-btn-primary";
     newBtn.textContent = "+ New Theme";
-    newBtn.addEventListener("click", async () => {
-      const name = prompt("Theme name:");
-      if (!name?.trim()) return;
-      await ctx.themeManager.create(name.trim());
-      this.render(container, ctx);
+    newBtn.addEventListener("click", () => {
+      // Replace button with inline input (prompt() unsupported in Electron sandbox)
+      const input = document.createElement("input");
+      input.type = "text";
+      input.placeholder = "Theme name…";
+      input.className = "betterx-theme-new-input";
+
+      const confirmBtn = document.createElement("button");
+      confirmBtn.className = "betterx-btn betterx-btn-primary";
+      confirmBtn.textContent = "Create";
+
+      const cancelBtn = document.createElement("button");
+      cancelBtn.className = "betterx-btn betterx-btn-secondary";
+      cancelBtn.textContent = "Cancel";
+
+      toolbar.replaceChild(input, newBtn);
+      toolbar.appendChild(confirmBtn);
+      toolbar.appendChild(cancelBtn);
+      input.focus();
+
+      const restore = () => {
+        toolbar.replaceChild(newBtn, input);
+        confirmBtn.remove();
+        cancelBtn.remove();
+      };
+
+      const confirm = async () => {
+        const name = input.value.trim();
+        if (!name) { restore(); return; }
+        restore();
+        await ctx.themeManager.create(name);
+        this.render(container, ctx);
+      };
+
+      confirmBtn.addEventListener("click", () => void confirm());
+      cancelBtn.addEventListener("click", restore);
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") void confirm();
+        if (e.key === "Escape") restore();
+      });
     });
 
     toolbar.appendChild(newBtn);
@@ -41,8 +75,7 @@ export const ThemesTab: SettingsTab = {
 
     if (themes.length === 0) {
       const empty = document.createElement("div");
-      empty.style.cssText =
-        "text-align:center;color:var(--betterx-textColorSecondary);padding:40px;";
+      empty.className = "betterx-empty-state";
       empty.textContent = "No themes yet. Create one to get started.";
       container.appendChild(empty);
       return;
@@ -89,7 +122,7 @@ export const ThemesTab: SettingsTab = {
 
     const drag = document.createElement("span");
     drag.textContent = "⠿";
-    drag.style.cssText = "color:var(--betterx-textColorSecondary);cursor:grab;font-size:16px;";
+    drag.className = "betterx-drag-handle";
 
     const name = document.createElement("span");
     name.className = "betterx-theme-name";
@@ -130,11 +163,10 @@ export const ThemesTab: SettingsTab = {
     container.innerHTML = "";
 
     const header = document.createElement("div");
-    header.style.cssText =
-      "display:flex;align-items:center;gap:8px;margin-bottom:8px;";
+    header.className = "betterx-editor-header";
 
     const title = document.createElement("h3");
-    title.style.cssText = "flex:1;font-size:14px;color:var(--betterx-textColor);margin:0;";
+    title.className = "betterx-editor-title";
     title.textContent = `Editing: ${theme.name}`;
 
     const saveBtn = document.createElement("button");

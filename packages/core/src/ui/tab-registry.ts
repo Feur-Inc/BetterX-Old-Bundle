@@ -8,6 +8,8 @@ export type BetterXContext = {
   pluginManager: PluginManager;
   themeManager: ThemeManager;
   notifications: NotificationManager;
+  /** URL of the BetterX logo image — platform-supplied (betterx:// or chrome-extension://) */
+  logoUrl: string;
 };
 
 export interface SettingsTab {

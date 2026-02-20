@@ -13,7 +13,7 @@
     "start": "ELECTRON_OZONE_PLATFORM_HINT=auto electron dist/main/index.mjs",
     "dev": "bun run clean && bun run build:main && bun run build:preload && concurrently \"bun run build:main --watch\" \"bun run build:preload --watch\" \"ELECTRON_OZONE_PLATFORM_HINT=auto electron dist/main/index.mjs\"",
     "dev:bundle": "vite build --config vite.bundle.config.ts --watch",
-    "dev:all": "bun run clean && bun run build:main && bun run build:preload && bun run build:bundle && concurrently \"bun run build:main --watch\" \"bun run build:preload --watch\" \"bun run dev:bundle\" \"ELECTRON_OZONE_PLATFORM_HINT=auto electron dist/main/index.mjs\"",
+    "dev:all": "bun run clean && bun run build:main && bun run build:preload && bun run build:bundle && concurrently \"bun run build:main --watch\" \"bun run build:preload --watch\" \"bun run dev:bundle\" \"ELECTRON_OZONE_PLATFORM_HINT=auto BETTERX_DEV=1 electron --remote-debugging-port=9229 dist/main/index.mjs\"",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -1,13 +1,9 @@
 // ─── BetterX Nav Button ───────────────────────────────────────────────────────
 // Injects the BetterX button into X.com's navigation sidebar.
 
-import { BETTERX_LOGO_URL } from "../utils/constants.js";
-
 type OnClickFn = () => void;
 
 const BUTTON_ID = "betterx-nav-btn";
-
-const BETTERX_ICON_SVG = `<img class="betterx-nav-icon" src="${BETTERX_LOGO_URL}" alt="BetterX" />`;
 
 /** Selector for the X.com primary navigation container. */
 const NAV_SELECTORS = [
@@ -24,7 +20,28 @@ function findNavParent(): Element | null {
   return null;
 }
 
-function buildButton(onClick: OnClickFn): HTMLElement {
+/**
+ * Check if Twitter's nav is in compact (icon-only) mode.
+ * Measure the home link's width — in compact mode it's just the icon (~40-60px),
+ * in expanded mode it includes the text label (~180px+).
+ */
+function isNavCompact(): boolean {
+  const homeLink =
+    document.querySelector('[data-testid="AppTabBar_Home_Link"]') ??
+    document.querySelector('a[href="/home"]');
+  if (!homeLink) return false;
+  return (homeLink as HTMLElement).offsetWidth < 100;
+}
+
+let compactObserver: ResizeObserver | null = null;
+
+function syncCompact(): void {
+  const li = document.getElementById(BUTTON_ID);
+  if (!li) return;
+  li.classList.toggle("betterx-nav-compact", isNavCompact());
+}
+
+function buildButton(onClick: OnClickFn, logoUrl: string): HTMLElement {
   const li = document.createElement("li");
   li.id = BUTTON_ID;
 
@@ -32,7 +49,12 @@ function buildButton(onClick: OnClickFn): HTMLElement {
   btn.className = "betterx-nav-button";
   btn.setAttribute("role", "button");
   btn.setAttribute("tabindex", "0");
-  btn.innerHTML = `${BETTERX_ICON_SVG}<span class="betterx-nav-label">BetterX</span>`;
+  btn.setAttribute("aria-label", "BetterX");
+  btn.setAttribute("title", "BetterX");
+  const iconHtml = logoUrl
+    ? `<img class="betterx-nav-icon" src="${logoUrl}" alt="BetterX" />`
+    : "";
+  btn.innerHTML = `${iconHtml}<span class="betterx-nav-label">BetterX</span>`;
 
   btn.addEventListener("click", onClick);
   btn.addEventListener("keydown", (e) => {
@@ -46,7 +68,7 @@ function buildButton(onClick: OnClickFn): HTMLElement {
   return li;
 }
 
-export function injectNavButton(onClick: OnClickFn): void {
+export function injectNavButton(onClick: OnClickFn, logoUrl: string): void {
   if (document.getElementById(BUTTON_ID)) return;
 
   const nav = findNavParent();
@@ -54,16 +76,23 @@ export function injectNavButton(onClick: OnClickFn): void {
 
   // Find the list or a suitable insertion point
   const list = nav.tagName === "NAV" ? nav.querySelector("ul") ?? nav : nav;
-  list.appendChild(buildButton(onClick));
+  list.appendChild(buildButton(onClick, logoUrl));
+
+  // Mirror Twitter's compact (icon-only) mode.
+  // Observe document.documentElement — the nav element itself may not resize.
+  syncCompact();
+  compactObserver?.disconnect();
+  compactObserver = new ResizeObserver(() => syncCompact());
+  compactObserver.observe(document.documentElement);
 }
 
 export function removeNavButton(): void {
   document.getElementById(BUTTON_ID)?.remove();
 }
 
-export function ensureNavButton(onClick: OnClickFn): void {
+export function ensureNavButton(onClick: OnClickFn, logoUrl: string): void {
   if (!document.getElementById(BUTTON_ID)) {
-    injectNavButton(onClick);
+    injectNavButton(onClick, logoUrl);
   }
 }
 
@@ -71,10 +100,10 @@ export function ensureNavButton(onClick: OnClickFn): void {
  * Watch for SPA navigation removing the nav button and re-inject it.
  * Uses MutationObserver on document.body (childList only, no subtree) for efficiency.
  */
-export function watchNavButton(onClick: OnClickFn): () => void {
+export function watchNavButton(onClick: OnClickFn, logoUrl: string): () => void {
   const observer = new MutationObserver(() => {
     if (!document.getElementById(BUTTON_ID)) {
-      injectNavButton(onClick);
+      injectNavButton(onClick, logoUrl);
     }
   });
 

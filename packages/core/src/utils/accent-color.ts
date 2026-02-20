@@ -1,41 +1,73 @@
 // ─── Accent Color ─────────────────────────────────────────────────────────────
-// Reads X.com's dynamic accent color and injects it as a CSS variable.
+// X.com stores the user's chosen accent color in IndexedDB:
+//   localforage > keyvaluepairs > "device:rweb.settings" > local.themeColor
+// The value is a string like "blue500", "purple500", etc.
 
 const ACCENT_CSS_ID = "betterx-accent-color";
 
-/** Detect X.com's current accent color from its CSS variables or background colors. */
-export function detectAccentColor(): string {
-  // Try reading from X.com's own CSS variable
-  const root = getComputedStyle(document.documentElement);
-  const xAccent = root.getPropertyValue("--color-brand-blue").trim();
-  if (xAccent) return xAccent;
+const ACCENT_COLORS: Record<string, string> = {
+  blue:    "#1d9bf0",
+  yellow:  "#ffd400",
+  magenta: "#f91880",
+  purple:  "#7856ff",
+  orange:  "#ff7a00",
+  green:   "#00ba7c",
+};
 
-  // Fallback: try to read from a prominent element
-  const brandEl = document.querySelector('[data-testid="AppTabBar_Home_Link"] svg path');
-  if (brandEl) {
-    const computed = getComputedStyle(brandEl as Element);
-    const fill = computed.fill;
-    if (fill && fill !== "none") return fill;
+const DEFAULT_COLOR = "#1d9bf0";
+
+function readFromIndexedDB(): Promise<string> {
+  return new Promise((resolve) => {
+    const req = indexedDB.open("localforage");
+    req.onerror = () => resolve(DEFAULT_COLOR);
+    req.onsuccess = () => {
+      const db = req.result;
+      try {
+        const tx = db.transaction(["keyvaluepairs"], "readonly");
+        const get = tx.objectStore("keyvaluepairs").get("device:rweb.settings");
+        get.onerror = () => resolve(DEFAULT_COLOR);
+        get.onsuccess = () => {
+          const data = get.result as { local?: { themeColor?: string } } | undefined;
+          const themeColor = data?.local?.themeColor;
+          if (themeColor) {
+            const match = themeColor.match(/^([a-z]+)500$/);
+            const name = match?.[1];
+            if (name && ACCENT_COLORS[name]) {
+              resolve(ACCENT_COLORS[name]);
+              return;
+            }
+          }
+          resolve(DEFAULT_COLOR);
+        };
+      } catch {
+        resolve(DEFAULT_COLOR);
+      }
+    };
+  });
+}
+
+/** Detect X.com's current accent color from IndexedDB. */
+export async function detectAccentColor(): Promise<string> {
+  try {
+    return await readFromIndexedDB();
+  } catch {
+    return DEFAULT_COLOR;
   }
-
-  // Default blue
-  return "#1d9bf0";
 }
 
 /** Detect if dark mode is active on X.com. */
 export function detectThemeMode(): "dark" | "light" | "dim" {
-  const html = document.documentElement;
-  const bg = getComputedStyle(html).getPropertyValue("--color-background").trim();
-
-  // X.com sets background to black (#000) in Lights Out mode, dark gray in dim
+  const bg = getComputedStyle(document.documentElement)
+    .getPropertyValue("--color-background")
+    .trim();
   if (bg === "#000000" || bg === "rgb(0, 0, 0)") return "dark";
   if (bg && bg !== "#ffffff" && bg !== "rgb(255, 255, 255)") return "dim";
   return "light";
 }
 
-/** Apply detected accent color as --betterx-accentColor CSS variable. */
-export function applyAccentColor(): void {
-  const color = detectAccentColor();
+/** Apply the detected accent color as --betterx-accentColor. */
+export async function applyAccentColor(): Promise<void> {
+  const color = await detectAccentColor();
   let style = document.getElementById(ACCENT_CSS_ID) as HTMLStyleElement | null;
   if (!style) {
     style = document.createElement("style");
@@ -45,22 +77,23 @@ export function applyAccentColor(): void {
   style.textContent = `:root { --betterx-accentColor: ${color}; }`;
 }
 
-/** Start watching for accent color changes (X.com can change it dynamically). */
+/**
+ * Watch for accent color changes. Polls IndexedDB every 5 seconds — X.com
+ * writes to IndexedDB when the user changes their color, so MutationObserver
+ * on html attributes won't catch it.
+ */
 export function watchAccentColor(callback: (color: string) => void): () => void {
-  let lastColor = detectAccentColor();
+  let lastColor = DEFAULT_COLOR;
 
-  const observer = new MutationObserver(() => {
-    const current = detectAccentColor();
+  const check = async (): Promise<void> => {
+    const current = await detectAccentColor();
     if (current !== lastColor) {
       lastColor = current;
       callback(current);
     }
-  });
+  };
 
-  observer.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ["style", "class"],
-  });
-
-  return () => observer.disconnect();
+  void check();
+  const id = window.setInterval(() => void check(), 5000);
+  return () => window.clearInterval(id);
 }

@@ -7,6 +7,7 @@ export type DesktopSettings = {
   currentHash: string | null;
   enableTransparency: boolean;
   startMinimized: boolean;
+  minimizeToTray: boolean;
   autoStart: boolean;
   checkForUpdates: boolean;
 };
@@ -16,8 +17,9 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   currentHash: null,
   enableTransparency: false,
   startMinimized: false,
+  minimizeToTray: true,
   autoStart: false,
-  checkForUpdates: false,
+  checkForUpdates: true,
 };
 
 export const settingsStore = new Store<DesktopSettings>({

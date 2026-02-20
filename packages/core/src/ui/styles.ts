@@ -32,6 +32,10 @@ export const BETTERX_STYLES = `
 }
 
 /* === Modal === */
+#betterx-modal,
+#betterx-modal * {
+  font-family: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+}
 #betterx-modal {
   background: var(--betterx-modalBg);
   border: 1px solid var(--betterx-borderColor);
@@ -52,8 +56,7 @@ export const BETTERX_STYLES = `
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px 0;
-  border-bottom: 1px solid var(--betterx-borderColor);
+  padding: 16px 24px;
   flex-shrink: 0;
 }
 
@@ -71,6 +74,12 @@ export const BETTERX_STYLES = `
   height: 28px;
   object-fit: contain;
   border-radius: 4px;
+}
+
+.betterx-modal-version {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--betterx-textColorSecondary);
 }
 
 .betterx-modal-close {
@@ -94,8 +103,12 @@ export const BETTERX_STYLES = `
   display: flex;
   gap: 2px;
   padding: 0 24px;
-  margin-top: 4px;
+  border-bottom: 1px solid var(--betterx-borderColor);
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.betterx-tabs::-webkit-scrollbar { display: none; }
 
 .betterx-tab {
   padding: 10px 16px;
@@ -130,6 +143,70 @@ export const BETTERX_STYLES = `
 .betterx-modal-body::-webkit-scrollbar { width: 6px; }
 .betterx-modal-body::-webkit-scrollbar-track { background: transparent; }
 .betterx-modal-body::-webkit-scrollbar-thumb { background: var(--betterx-borderColor); border-radius: 3px; }
+
+/* === Plugins Toolbar === */
+.betterx-plugins-toolbar {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.betterx-plugins-toolbar .betterx-search-bar {
+  margin-bottom: 0;
+  flex: 1;
+}
+.betterx-view-toggle {
+  display: flex !important;
+  background: var(--betterx-contentBg);
+  border: 1px solid var(--betterx-borderColor);
+  border-radius: 8px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+.betterx-view-btn {
+  background: none !important;
+  border: none !important;
+  border-right: 1px solid var(--betterx-borderColor) !important;
+  color: var(--betterx-textColorSecondary) !important;
+  cursor: pointer !important;
+  padding: 5px 8px !important;
+  border-radius: 6px 0 0 6px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: color 0.15s, background 0.15s;
+  line-height: 1;
+}
+.betterx-view-btn:last-child {
+  border-right: none !important;
+  border-radius: 0 6px 6px 0 !important;
+}
+.betterx-view-btn:hover {
+  color: var(--betterx-textColor) !important;
+  background: var(--betterx-hoverBg) !important;
+}
+.betterx-view-btn.betterx-view-btn-active {
+  color: var(--betterx-accentColor) !important;
+  background: var(--betterx-hoverBg) !important;
+}
+
+/* === Grid View === */
+.betterx-plugin-list.betterx-grid-view {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.betterx-grid-view .betterx-plugin-item {
+  margin-bottom: 0;
+}
+.betterx-grid-view .betterx-plugin-description {
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: unset;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
 
 /* === Plugin List === */
 .betterx-search-bar {
@@ -218,6 +295,7 @@ export const BETTERX_STYLES = `
 
 /* === Toggle Switch === */
 .betterx-toggle {
+  display: block;
   position: relative;
   width: 44px;
   height: 24px;
@@ -271,10 +349,35 @@ export const BETTERX_STYLES = `
 }
 .betterx-option:last-child { border-bottom: none; }
 
+.betterx-option-label-group {
+  flex: 1;
+  min-width: 0;
+}
+
 .betterx-option-label {
   font-size: 13px;
   font-weight: 500;
   color: var(--betterx-textColor);
+}
+
+.betterx-option-label-badged {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--betterx-textColor);
+}
+
+.betterx-restart-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--betterx-warning);
+  color: #000;
+  opacity: 0.8;
+  flex-shrink: 0;
 }
 
 .betterx-option-description {
@@ -285,6 +388,18 @@ export const BETTERX_STYLES = `
 
 .betterx-option-control {
   flex-shrink: 0;
+}
+
+.betterx-bundle-path {
+  font-size: 12px;
+  color: var(--betterx-textColorSecondary);
+  font-family: monospace;
+  word-break: break-all;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  background: var(--betterx-searchBarBg);
+  border-radius: 6px;
+  border: 1px solid var(--betterx-borderColor);
 }
 
 .betterx-select {
@@ -308,6 +423,7 @@ export const BETTERX_STYLES = `
   font-size: 13px;
   outline: none;
   width: 180px;
+  box-sizing: border-box;
 }
 .betterx-input-text:focus { border-color: var(--betterx-accentColor); }
 
@@ -320,6 +436,7 @@ export const BETTERX_STYLES = `
   font-size: 13px;
   outline: none;
   width: 100px;
+  box-sizing: border-box;
 }
 .betterx-input-number:focus { border-color: var(--betterx-accentColor); }
 
@@ -586,6 +703,117 @@ export const BETTERX_STYLES = `
 .betterx-nav-label {
   font-size: 20px;
   font-weight: 400;
+}
+
+.betterx-nav-compact .betterx-nav-label {
+  display: none;
+}
+
+/* === Focus Indicators === */
+.betterx-tab:focus-visible,
+.betterx-btn:focus-visible,
+.betterx-modal-close:focus-visible {
+  outline: 2px solid var(--betterx-accentColor);
+  outline-offset: 2px;
+}
+.betterx-toggle input:focus-visible + .betterx-toggle-slider {
+  outline: 2px solid var(--betterx-accentColor);
+  outline-offset: 2px;
+}
+
+/* === Themes Tab === */
+.betterx-themes-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+.betterx-theme-new-input {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--betterx-borderColor);
+  background: var(--betterx-searchBarBg);
+  color: var(--betterx-textColor);
+  font-size: 14px;
+  min-width: 0;
+  box-sizing: border-box;
+  outline: none;
+}
+.betterx-theme-new-input:focus { border-color: var(--betterx-accentColor); }
+
+.betterx-empty-state {
+  text-align: center;
+  color: var(--betterx-textColorSecondary);
+  padding: 40px;
+}
+
+.betterx-drag-handle {
+  color: var(--betterx-textColorSecondary);
+  cursor: grab;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.betterx-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.betterx-editor-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--betterx-textColor);
+  margin: 0;
+}
+
+/* === Developer Tab === */
+.betterx-dev-plugin-list {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--betterx-textColorSecondary);
+  max-height: 200px;
+  overflow-y: auto;
+}
+.betterx-dev-plugin-row { padding: 2px 0; }
+.betterx-dev-plugin-name { color: var(--betterx-textColor); }
+
+/* === About Tab === */
+.betterx-about-description {
+  color: var(--betterx-textColorSecondary);
+  text-align: center;
+  max-width: 400px;
+  font-size: 14px;
+}
+
+.betterx-about-contributors-section {
+  width: 100%;
+  border-top: 1px solid var(--betterx-borderColor);
+  padding-top: 20px;
+  margin-top: 8px;
+}
+
+.betterx-about-contributors-title {
+  text-align: center;
+  color: var(--betterx-textColor);
+  font-size: 16px;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.betterx-about-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.betterx-contributor-name {
+  font-weight: 600;
+  color: var(--betterx-textColor);
 }
 
 /* === Animations === */

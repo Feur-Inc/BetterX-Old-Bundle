@@ -19,6 +19,7 @@ export default definePlugin({
         { label: "FixupX", value: "fixupx.com" },
         { label: "vxTwitter", value: "vxtwitter.com" },
         { label: "FxTwitter", value: "fxtwitter.com" },
+        { label: "GirlCockX", value: "girlcockx.com" },
       ],
     },
   },

@@ -1,9 +1,8 @@
-import { app, BrowserWindow } from "electron";
-import { join, dirname } from "path";
+import { app, BrowserWindow, ipcMain } from "electron";
+import { join, dirname, basename } from "path";
 import { fileURLToPath } from "url";
 import { existsSync, watch } from "fs";
 import { mkdir } from "fs/promises";
-import { basename, dirname } from "path";
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -15,6 +14,7 @@ import {
   handleBetterxProtocol,
   createMainWindow,
   setBundlePath,
+  setAssetsPath,
 } from "./window.js";
 import { setupCSP } from "./security.js";
 import { createTray } from "./tray.js";
@@ -39,9 +39,15 @@ const SAVED_BUNDLE_PATH = join(BETTERX_DIR, "bundle.iife.js");
 
 // ─── Wayland support ──────────────────────────────────────────────────────────
 
-if (process.platform === "linux" && process.env.WAYLAND_DISPLAY) {
-  app.commandLine.appendSwitch("ozone-platform", "wayland");
-  app.commandLine.appendSwitch("enable-features", "WaylandWindowDecorations");
+if (process.platform === "linux") {
+  if (process.env.WAYLAND_DISPLAY) {
+    app.commandLine.appendSwitch("ozone-platform", "wayland");
+    app.commandLine.appendSwitch("enable-features", "WaylandWindowDecorations");
+  }
+  // Disable GBM video buffer allocation — YUV_420_BIPLANAR SCANOUT not
+  // supported on many Mesa drivers, causing a spam of GPU errors.
+  app.commandLine.appendSwitch("disable-gpu-memory-buffer-video-frames");
+  app.commandLine.appendSwitch("disable-features", "UseChromeOSDirectVideoDecoder,VaapiVideoDecoder");
 }
 
 // ─── Single Instance Lock ─────────────────────────────────────────────────────
@@ -73,6 +79,7 @@ app.whenReady().then(async () => {
   const bundlePath = (storedPath && existsSync(storedPath)) ? storedPath : BUNDLE_PATH;
   setSetting("bundlePath", bundlePath);
   setBundlePath(bundlePath);
+  setAssetsPath(join(__dirname, "../../assets"));
 
   // Check/update bundle
   if (getSetting("checkForUpdates")) {
@@ -95,6 +102,10 @@ app.whenReady().then(async () => {
   registerThemeHandlers();
   registerSettingsHandlers();
   registerUpdateHandlers();
+  ipcMain.on("app:restart", () => {
+    app.relaunch();
+    app.exit(0);
+  });
 
   // Create main window
   const preloadPath = join(__dirname, "../preload/preload.js");
@@ -145,6 +156,10 @@ app.on("second-instance", () => {
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.focus();
   }
+});
+
+app.on("before-quit", () => {
+  (app as typeof app & { isQuitting: boolean }).isQuitting = true;
 });
 
 app.on("window-all-closed", () => {

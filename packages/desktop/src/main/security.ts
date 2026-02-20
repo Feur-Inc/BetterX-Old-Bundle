@@ -27,7 +27,10 @@ export function setupCSP(): void {
       const existing = responseHeaders[cspKey];
       if (Array.isArray(existing)) {
         responseHeaders[cspKey] = existing.map((directive) =>
-          directive.replace("script-src", "script-src betterx:")
+          directive
+            .replace("script-src", "script-src betterx:")
+            // Allow any HTTPS image — plugins load from GitHub, cataas, unavatar, etc.
+            .replace("img-src", "img-src betterx: https:")
         );
       }
     }

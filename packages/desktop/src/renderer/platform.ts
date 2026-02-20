@@ -19,11 +19,13 @@ type ElectronAPISettings = {
   getAll(): Promise<Record<string, unknown>>;
   get(key: string): Promise<unknown>;
   set(key: string, value: unknown): Promise<void>;
+  chooseBundlePath(): Promise<string | null>;
 };
 
 type ElectronAPIUpdate = {
+  checkBundle(): Promise<{ updateAvailable: boolean; remoteHash: string }>;
+  applyBundle(remoteHash: string): Promise<void>;
   onBundleApplied(callback: () => void): () => void;
-  captureElement?(rect: DOMRect): Promise<string>;
 };
 
 declare global {
@@ -32,6 +34,9 @@ declare global {
       themes: ElectronAPIThemes;
       settings: ElectronAPISettings;
       update?: ElectronAPIUpdate;
+      captureElement?(rect: { x: number; y: number; width: number; height: number }): Promise<string>;
+      getVersion?(): string;
+      restart?(): void;
     };
   }
 }

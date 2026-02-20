@@ -39,6 +39,8 @@ const api: ElectronAPI = {
   captureElement: (rect) => ipcRenderer.invoke("capture:element", rect),
 
   getVersion: () => ipcRenderer.sendSync("app:get-version") as string,
+
+  restart: () => ipcRenderer.send("app:restart"),
 };
 
 contextBridge.exposeInMainWorld("electronAPI", api);

@@ -16,9 +16,17 @@ const SCREENSHOT_BTN_HTML = `
 
 let screenshotObserver: MutationObserver | null = null;
 
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [header, b64] = dataUrl.split(",");
+  const mime = header.match(/:(.*?);/)?.[1] ?? "image/png";
+  const bytes = atob(b64);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
 async function copyDataUrlToClipboard(dataUrl: string): Promise<void> {
-  const res = await fetch(dataUrl);
-  const blob = await res.blob();
+  const blob = dataUrlToBlob(dataUrl);
   await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
 }
 
@@ -33,14 +41,17 @@ async function captureTweet(tweet: HTMLElement): Promise<void> {
     if (!h2c) {
       // In Electron, use the IPC capture API
       const electronAPI = win["electronAPI"] as
-        | { captureElement?: (rect: DOMRect) => Promise<string> }
+        | { captureElement?: (rect: { x: number; y: number; width: number; height: number }) => Promise<string> }
         | undefined;
 
       if (electronAPI?.captureElement) {
         tweet.scrollIntoView({ block: "center" });
         await new Promise((r) => setTimeout(r, 100));
-        const dataUrl = await electronAPI.captureElement(tweet.getBoundingClientRect());
-        await copyDataUrlToClipboard(dataUrl);
+        // DOMRect properties are prototype getters — serialize to a plain object
+        // so structured clone over IPC doesn't drop them
+        const r = tweet.getBoundingClientRect();
+        await electronAPI.captureElement({ x: r.x, y: r.y, width: r.width, height: r.height });
+        // Main process (capture.ts) already wrote to clipboard via nativeImage
         notifications.showSuccess("Tweet screenshot copied to clipboard!");
       } else {
         notifications.showInfo("Screenshot requires the Electron desktop app.");

@@ -1,5 +1,5 @@
 import type { SettingsTab, BetterXContext } from "../tab-registry.js";
-import { Devs, BETTERX_VERSION, BETTERX_LOGO_URL } from "../../utils/constants.js";
+import { Devs, BETTERX_VERSION } from "../../utils/constants.js";
 
 // ─── About Tab ────────────────────────────────────────────────────────────────
 
@@ -14,7 +14,7 @@ export const AboutTab: SettingsTab = {
   name: "About",
   priority: 40,
 
-  initialize(container: HTMLElement, _ctx: BetterXContext): void {
+  initialize(container: HTMLElement, ctx: BetterXContext): void {
     container.innerHTML = "";
 
     const contributors = Object.values(Devs);
@@ -29,9 +29,9 @@ export const AboutTab: SettingsTab = {
           <img class="betterx-author-avatar"
                src="https://unavatar.io/twitter/${escHtml(dev.handle)}"
                alt="${escHtml(dev.name)}"
-               onerror="this.style.display='none'">
+               data-fallback="1">
           <div>
-            <div style="font-weight:600;color:var(--betterx-textColor)">${escHtml(dev.name)}</div>
+            <div class="betterx-contributor-name">${escHtml(dev.name)}</div>
             <div>@${escHtml(dev.handle)}</div>
           </div>
         </a>
@@ -39,22 +39,22 @@ export const AboutTab: SettingsTab = {
       )
       .join("");
 
-    container.innerHTML = `
+    const html = `
       <div class="betterx-about">
-        <img class="betterx-about-logo" src="${BETTERX_LOGO_URL}" alt="BetterX" />
+        ${ctx.logoUrl ? `<img class="betterx-about-logo" src="${ctx.logoUrl}" alt="BetterX" />` : ""}
         <h2>BetterX</h2>
         <div class="betterx-about-version">Version ${escHtml(BETTERX_VERSION)}</div>
-        <p style="color:var(--betterx-textColorSecondary);text-align:center;max-width:400px;font-size:14px;">
+        <p class="betterx-about-description">
           An open-source enhancement tool for X (formerly Twitter).
           Made with ❤️ by the community.
         </p>
 
-        <div style="width:100%;border-top:1px solid var(--betterx-borderColor);padding-top:20px;margin-top:8px;">
-          <h3 style="text-align:center;color:var(--betterx-textColor);font-size:16px;margin-bottom:16px;">Contributors</h3>
+        <div class="betterx-about-contributors-section">
+          <h3 class="betterx-about-contributors-title">Contributors</h3>
           <div class="betterx-about-contributors">${contributorCards}</div>
         </div>
 
-        <div style="display:flex;gap:12px;margin-top:16px;">
+        <div class="betterx-about-actions">
           <a href="https://github.com/feur-inc/BetterX"
              target="_blank" rel="noopener noreferrer"
              class="betterx-btn betterx-btn-secondary">
@@ -63,5 +63,11 @@ export const AboutTab: SettingsTab = {
         </div>
       </div>
     `;
+    container.innerHTML = html;
+
+    // Attach error handlers after setting innerHTML (inline onerror blocked by CSP)
+    container.querySelectorAll<HTMLImageElement>("img[data-fallback]").forEach((img) => {
+      img.addEventListener("error", () => { img.style.display = "none"; });
+    });
   },
 };
