@@ -15,7 +15,7 @@
     "build:desktop": "bun run --cwd packages/desktop build",
     "start:desktop": "bun run --cwd packages/desktop start",
     "dev:extension": "bun run --cwd packages/extension dev",
-    "dev:desktop": "bun run --cwd packages/desktop dev",
+    "dev:desktop": "bun run --cwd packages/desktop dev:all",
     "lint": "biome check .",
     "format": "biome format --write .",
     "typecheck": "tsc --build packages/core/tsconfig.json packages/plugins/tsconfig.json"

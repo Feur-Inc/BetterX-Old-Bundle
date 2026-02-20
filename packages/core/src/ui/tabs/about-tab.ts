@@ -1,5 +1,5 @@
 import type { SettingsTab, BetterXContext } from "../tab-registry.js";
-import { Devs, BETTERX_VERSION } from "../../utils/constants.js";
+import { Devs, BETTERX_VERSION, BETTERX_LOGO_URL } from "../../utils/constants.js";
 
 // ─── About Tab ────────────────────────────────────────────────────────────────
 
@@ -41,10 +41,7 @@ export const AboutTab: SettingsTab = {
 
     container.innerHTML = `
       <div class="betterx-about">
-        <svg class="betterx-about-logo" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
-          <path d="M8 12h8M12 8v8" stroke="white" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-        </svg>
+        <img class="betterx-about-logo" src="${BETTERX_LOGO_URL}" alt="BetterX" />
         <h2>BetterX</h2>
         <div class="betterx-about-version">Version ${escHtml(BETTERX_VERSION)}</div>
         <p style="color:var(--betterx-textColorSecondary);text-align:center;max-width:400px;font-size:14px;">

@@ -2,7 +2,7 @@ import type { BetterXContext, SettingsTab } from "./tab-registry.js";
 import { TabRegistry } from "./tab-registry.js";
 import { BETTERX_STYLES } from "./styles.js";
 import { injectStyle } from "../utils/dom.js";
-import { BETTERX_VERSION } from "../utils/constants.js";
+import { BETTERX_VERSION, BETTERX_LOGO_URL } from "../utils/constants.js";
 
 // ─── Settings Modal ───────────────────────────────────────────────────────────
 
@@ -126,9 +126,7 @@ export class SettingsModal {
       <div id="betterx-modal" role="dialog" aria-modal="true" aria-label="BetterX Settings">
         <div class="betterx-modal-header">
           <div class="betterx-modal-title">
-            <svg class="betterx-modal-title-logo" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
-            </svg>
+            <img class="betterx-modal-title-logo" src="${BETTERX_LOGO_URL}" alt="BetterX" />
             BetterX Settings
             <span style="font-size:11px;font-weight:400;color:var(--betterx-textColorSecondary)">v${BETTERX_VERSION}</span>
           </div>

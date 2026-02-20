@@ -69,7 +69,8 @@ export const BETTERX_STYLES = `
 .betterx-modal-title-logo {
   width: 28px;
   height: 28px;
-  color: var(--betterx-accentColor);
+  object-fit: contain;
+  border-radius: 4px;
 }
 
 .betterx-modal-close {
@@ -410,7 +411,8 @@ export const BETTERX_STYLES = `
 .betterx-about-logo {
   width: 80px;
   height: 80px;
-  color: var(--betterx-accentColor);
+  object-fit: contain;
+  border-radius: 12px;
 }
 
 .betterx-about h2 {
@@ -577,7 +579,8 @@ export const BETTERX_STYLES = `
   width: 26px;
   height: 26px;
   flex-shrink: 0;
-  color: var(--betterx-accentColor);
+  object-fit: contain;
+  border-radius: 4px;
 }
 
 .betterx-nav-label {

@@ -1,8 +1,9 @@
 import { app, BrowserWindow } from "electron";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { existsSync } from "fs";
+import { existsSync, watch } from "fs";
 import { mkdir } from "fs/promises";
+import { basename, dirname } from "path";
 
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -33,6 +34,15 @@ import {
 const BETTERX_DIR = join(app.getPath("userData"), "BetterX");
 // Default to the locally-built bundle; overridden by userData path once a remote update is applied
 const BUNDLE_PATH = join(__dirname, "../bundle/bundle.iife.js");
+// Where remote bundle updates are saved (userData, persists across app updates)
+const SAVED_BUNDLE_PATH = join(BETTERX_DIR, "bundle.iife.js");
+
+// ─── Wayland support ──────────────────────────────────────────────────────────
+
+if (process.platform === "linux" && process.env.WAYLAND_DISPLAY) {
+  app.commandLine.appendSwitch("ozone-platform", "wayland");
+  app.commandLine.appendSwitch("enable-features", "WaylandWindowDecorations");
+}
 
 // ─── Single Instance Lock ─────────────────────────────────────────────────────
 
@@ -67,11 +77,11 @@ app.whenReady().then(async () => {
   // Check/update bundle
   if (getSetting("checkForUpdates")) {
     try {
-      const currentHash = await readPersistedHash(savedPath) ?? getSetting("currentHash");
+      const currentHash = await readPersistedHash(SAVED_BUNDLE_PATH) ?? getSetting("currentHash");
       const result = await checkForBundleUpdate(currentHash);
       if (result.updateAvailable) {
         logger.info("BetterX bundle update available, downloading...");
-        await applyBundleUpdate(savedPath, result.remoteHash);
+        await applyBundleUpdate(SAVED_BUNDLE_PATH, result.remoteHash);
         setSetting("currentHash", result.remoteHash);
         logger.info("Bundle updated successfully");
       }
@@ -106,6 +116,26 @@ app.whenReady().then(async () => {
   // Start minimized?
   if (getSetting("startMinimized")) {
     mainWindow.minimize();
+  }
+
+  // ─── Bundle hot-reload ──────────────────────────────────────────────────────
+  // Watch the bundle directory for changes (Vite does atomic renames, so
+  // watching the file itself is unreliable — watch the dir instead).
+  let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+  try {
+    watch(dirname(bundlePath), (_, filename) => {
+      if (filename !== basename(bundlePath)) return;
+      if (reloadTimer) clearTimeout(reloadTimer);
+      reloadTimer = setTimeout(() => {
+        reloadTimer = null;
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.reload();
+          logger.info("[BetterX] Bundle changed — reloading page");
+        }
+      }, 300);
+    });
+  } catch {
+    // Non-fatal: bundle watching unavailable
   }
 });
 

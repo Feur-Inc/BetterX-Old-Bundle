@@ -1,15 +1,13 @@
 // ─── BetterX Nav Button ───────────────────────────────────────────────────────
 // Injects the BetterX button into X.com's navigation sidebar.
 
+import { BETTERX_LOGO_URL } from "../utils/constants.js";
+
 type OnClickFn = () => void;
 
 const BUTTON_ID = "betterx-nav-btn";
 
-const BETTERX_ICON_SVG = `
-<svg class="betterx-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="currentColor"/>
-  <path d="M8 12h8M12 8v8" stroke="white" stroke-width="2.5"/>
-</svg>`.trim();
+const BETTERX_ICON_SVG = `<img class="betterx-nav-icon" src="${BETTERX_LOGO_URL}" alt="BetterX" />`;
 
 /** Selector for the X.com primary navigation container. */
 const NAV_SELECTORS = [
