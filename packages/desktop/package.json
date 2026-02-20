@@ -1,0 +1,49 @@
+{
+  "name": "@betterx/desktop",
+  "productName": "BetterX Desktop",
+  "version": "2.0.0",
+  "private": true,
+  "main": "dist/main/index.mjs",
+  "scripts": {
+    "build": "bun run build:main && bun run build:preload && bun run build:bundle",
+    "build:main": "vite build --config vite.main.config.ts",
+    "build:preload": "vite build --config vite.preload.config.ts",
+    "build:bundle": "vite build --config vite.bundle.config.ts",
+    "dev": "concurrently \"bun run build:main --watch\" \"bun run build:preload --watch\" \"electron dist/main/index.js\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@betterx/core": "*",
+    "@betterx/plugins": "*",
+    "electron-store": "^10.0.0",
+    "electron-updater": "^6.6.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "vite": "^6.0.0",
+    "vite-plugin-dts": "^4.3.0"
+  },
+  "build": {
+    "appId": "com.feurinc.betterx",
+    "productName": "BetterX Desktop",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "assets/**/*"
+    ],
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Network"
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "mac": {
+      "target": ["dmg"]
+    }
+  }
+}

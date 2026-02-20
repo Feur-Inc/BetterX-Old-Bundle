@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  build:
+    name: Typecheck & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck (core)
+        run: bun run typecheck
+        working-directory: packages/core
+
+      - name: Typecheck (plugins)
+        run: bun run typecheck
+        working-directory: packages/plugins
+
+      - name: Typecheck (extension)
+        run: bun run typecheck
+        working-directory: packages/extension
+
+      - name: Typecheck (desktop)
+        run: bun run typecheck
+        working-directory: packages/desktop
+
+      - name: Build all
+        run: bun run build
+
+      - name: Upload extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-${{ github.sha }}
+          path: packages/extension/dist/
+          retention-days: 14
+
+      - name: Upload desktop bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-bundle-${{ github.sha }}
+          path: packages/desktop/dist/
+          retention-days: 14
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build all
+        run: bun run build
+
+      - name: Package extension (zip)
+        run: |
+          cd packages/extension/dist
+          zip -r ../../../betterx-extension.zip .
+
+      - name: Get version
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        working-directory: packages/desktop
+
+      - name: Create release
+        uses: actions/gitea-release@v1
+        with:
+          token: ${{ secrets.GITEA_TOKEN }}
+          tag_name: v${{ steps.version.outputs.version }}-${{ github.run_number }}
+          release_name: "BetterX v${{ steps.version.outputs.version }}"
+          files: |
+            betterx-extension.zip
+          body: |
+            ## BetterX v${{ steps.version.outputs.version }}
+
+            ### Installation
+            - **Browser Extension**: Download `betterx-extension.zip`, unzip, load as unpacked extension in Chrome
+            - **Desktop App**: Coming soon
+
+            ### Changes
+            See commit history for details.

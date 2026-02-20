@@ -1,0 +1,18 @@
+import { defineConfig, type UserConfig } from "vite";
+import { resolve } from "path";
+
+export default defineConfig({
+  build: {
+    lib: {
+      entry: resolve(__dirname, "src/preload/index.ts"),
+      formats: ["cjs"],
+      fileName: "preload",
+    },
+    outDir: "dist/preload",
+    emptyOutDir: true,
+    rollupOptions: {
+      external: (id: string) =>
+        !id.startsWith(".") && !id.startsWith("/") && !id.startsWith("@betterx/"),
+    },
+  },
+} as UserConfig);

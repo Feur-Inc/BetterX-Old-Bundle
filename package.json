@@ -1,0 +1,26 @@
+{
+  "name": "betterx",
+  "private": true,
+  "workspaces": [
+    "packages/core",
+    "packages/plugins",
+    "packages/extension",
+    "packages/desktop"
+  ],
+  "scripts": {
+    "build": "bun run build:core && bun run build:plugins && bun run build:extension && bun run build:desktop",
+    "build:core": "bun run --cwd packages/core build",
+    "build:plugins": "bun run --cwd packages/plugins build",
+    "build:extension": "bun run --cwd packages/extension build",
+    "build:desktop": "bun run --cwd packages/desktop build",
+    "dev:extension": "bun run --cwd packages/extension dev",
+    "dev:desktop": "bun run --cwd packages/desktop dev",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "tsc --build packages/core/tsconfig.json packages/plugins/tsconfig.json"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+release/
+.crx/
+
+# Vite / TypeScript cache
+*.tsbuildinfo
+.vite/
+
+# electron-builder
+packages/desktop/release/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+bun-debug.log*
+
+# Temp
+*.tmp
+*.bak

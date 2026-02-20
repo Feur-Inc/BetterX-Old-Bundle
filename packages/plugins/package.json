@@ -1,0 +1,27 @@
+{
+  "name": "@betterx/plugins",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "vite build && rm -f tsconfig.tsbuildinfo && tsc --emitDeclarationOnly --outDir dist",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@betterx/core": "*",
+    "node-emoji": "^1.11.0"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "composite": true,
+    "paths": {
+      "@betterx/core": ["../core/src/index.ts"]
+    }
+  },
+  "references": [
+    { "path": "../core" }
+  ],
+  "include": ["src/**/*"]
+}
