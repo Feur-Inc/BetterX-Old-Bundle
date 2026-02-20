@@ -1,7 +1,7 @@
 {
   "name": "@betterx/desktop",
-  "productName": "BetterX Desktop",
-  "version": "2.0.0",
+  "productName": "BetterX V3 Desktop",
+  "version": "3.0.0",
   "private": true,
   "main": "dist/main/index.mjs",
   "scripts": {
@@ -27,7 +27,7 @@
   },
   "build": {
     "appId": "com.feurinc.betterx",
-    "productName": "BetterX Desktop",
+    "productName": "BetterX V3 Desktop",
     "directories": {
       "output": "release"
     },

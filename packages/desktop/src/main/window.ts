@@ -62,7 +62,7 @@ export function createMainWindow(preloadPath: string, enableTransparency: boolea
   const win = new BrowserWindow({
     width: 1280,
     height: 720,
-    title: "BetterX Desktop",
+    title: "BetterX V3 Desktop",
     autoHideMenuBar: true,
     transparent: enableTransparency,
     backgroundColor: enableTransparency ? "#00000000" : "#000000",

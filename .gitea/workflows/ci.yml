@@ -92,11 +92,11 @@ jobs:
         with:
           token: ${{ secrets.GITEA_TOKEN }}
           tag_name: v${{ steps.version.outputs.version }}-${{ github.run_number }}
-          release_name: "BetterX v${{ steps.version.outputs.version }}"
+          release_name: "BetterX V3 v${{ steps.version.outputs.version }}"
           files: |
             betterx-extension.zip
           body: |
-            ## BetterX v${{ steps.version.outputs.version }}
+            ## BetterX V3 v${{ steps.version.outputs.version }}
 
             ### Installation
             - **Browser Extension**: Download `betterx-extension.zip`, unzip, load as unpacked extension in Chrome
