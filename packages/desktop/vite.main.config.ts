@@ -9,7 +9,7 @@ export default defineConfig({
       fileName: "index",
     },
     outDir: "dist/main",
-    emptyOutDir: true,
+    emptyOutDir: false,
     rollupOptions: {
       // Externalize everything except local files and @betterx workspace packages
       external: (id: string) =>

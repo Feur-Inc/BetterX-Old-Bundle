@@ -9,7 +9,7 @@ export default defineConfig({
       fileName: "preload",
     },
     outDir: "dist/preload",
-    emptyOutDir: true,
+    emptyOutDir: false,
     rollupOptions: {
       external: (id: string) =>
         !id.startsWith(".") && !id.startsWith("/") && !id.startsWith("@betterx/"),

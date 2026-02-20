@@ -13,6 +13,7 @@
     "build:plugins": "bun run --cwd packages/plugins build",
     "build:extension": "bun run --cwd packages/extension build",
     "build:desktop": "bun run --cwd packages/desktop build",
+    "start:desktop": "bun run --cwd packages/desktop start",
     "dev:extension": "bun run --cwd packages/extension dev",
     "dev:desktop": "bun run --cwd packages/desktop dev",
     "lint": "biome check .",
