@@ -24,6 +24,7 @@ import { BETTERX_STYLES } from "@betterx/core";
 import { allPlugins } from "@betterx/plugins";
 import { DesktopStorage } from "./platform.js";
 import { DesktopTab } from "./desktop-tab.js";
+import { startPageTracker } from "./page-tracker.js";
 
 let initialized = false;
 
@@ -47,7 +48,7 @@ async function init(): Promise<void> {
   await themeManager.initialize();
 
   // 5. Init plugins
-  await pluginManager.initialize(allPlugins);
+  await pluginManager.initialize(allPlugins, "desktop");
 
   // 6. Accent color
   applyAccentColor();
@@ -80,6 +81,9 @@ async function init(): Promise<void> {
     notifications.showInfo("BetterX bundle updated. Refreshing...", { duration: 3000 });
     setTimeout(() => window.location.reload(), 3000);
   });
+
+  // 12. Page tracker (Discord RPC)
+  startPageTracker();
 
   logger.info("BetterX Desktop initialized ✓");
 }

@@ -17,7 +17,7 @@ const SCREENSHOT_BTN_HTML = `
 let screenshotObserver: MutationObserver | null = null;
 
 function dataUrlToBlob(dataUrl: string): Blob {
-  const [header, b64] = dataUrl.split(",");
+  const [header = "", b64 = ""] = dataUrl.split(",");
   const mime = header.match(/:(.*?);/)?.[1] ?? "image/png";
   const bytes = atob(b64);
   const arr = new Uint8Array(bytes.length);

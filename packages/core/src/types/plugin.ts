@@ -43,6 +43,8 @@ export type Developer = {
 
 // ─── Plugin Definition ────────────────────────────────────────────────────────
 
+export type PluginPlatform = "desktop" | "extension";
+
 export type PluginDefinition<O extends PluginOptionDefs = Record<string, never>> = {
   name: string;
   description?: string;
@@ -50,6 +52,8 @@ export type PluginDefinition<O extends PluginOptionDefs = Record<string, never>>
   version?: string;
   options?: O;
   requiresRestart?: boolean;
+  /** Restrict this plugin to a specific platform. Omit for all platforms. */
+  platform?: PluginPlatform;
   start: (this: Plugin<O>) => void;
   stop?: (this: Plugin<O>) => void;
   renderSettings?: (container: HTMLElement) => void;
@@ -58,6 +62,8 @@ export type PluginDefinition<O extends PluginOptionDefs = Record<string, never>>
 export type Plugin<O extends PluginOptionDefs = Record<string, never>> = PluginDefinition<O> & {
   enabled: boolean;
   isUserPlugin: boolean;
+  /** Set when the plugin targets a different platform than the current one. */
+  unavailable?: boolean;
   settings: {
     store: InferredStore<O>;
   };

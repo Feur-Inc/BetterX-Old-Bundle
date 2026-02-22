@@ -93,9 +93,17 @@ function renderOptions(container: HTMLElement, plugin: Plugin, ctx: BetterXConte
   container.appendChild(optContainer);
 }
 
+function platformLabel(platform: string): string {
+  if (platform === "desktop") return "Desktop only";
+  if (platform === "extension") return "Extension only";
+  return platform;
+}
+
 function renderPlugin(plugin: Plugin, ctx: BetterXContext): HTMLElement {
   const item = document.createElement("div");
-  item.className = "betterx-plugin-item";
+  item.className = plugin.unavailable
+    ? "betterx-plugin-item betterx-plugin-item-unavailable"
+    : "betterx-plugin-item";
 
   const header = document.createElement("div");
   header.className = "betterx-plugin-header";
@@ -103,15 +111,22 @@ function renderPlugin(plugin: Plugin, ctx: BetterXContext): HTMLElement {
   const info = document.createElement("div");
   info.className = "betterx-plugin-info";
 
-  const name = document.createElement("div");
-  name.className = "betterx-plugin-name";
-  name.textContent = plugin.name;
+  const nameRow = document.createElement("div");
+  nameRow.className = "betterx-plugin-name";
+  nameRow.textContent = plugin.name;
+
+  if (plugin.unavailable && plugin.platform) {
+    const badge = document.createElement("span");
+    badge.className = "betterx-platform-badge";
+    badge.textContent = platformLabel(plugin.platform);
+    nameRow.appendChild(badge);
+  }
 
   const desc = document.createElement("div");
   desc.className = "betterx-plugin-description";
   desc.textContent = plugin.description ?? "";
 
-  info.append(name, desc);
+  info.append(nameRow, desc);
 
   // Toggle
   const toggle = document.createElement("label");
@@ -119,6 +134,7 @@ function renderPlugin(plugin: Plugin, ctx: BetterXContext): HTMLElement {
   const input = document.createElement("input");
   input.type = "checkbox";
   input.checked = plugin.enabled;
+  input.disabled = !!plugin.unavailable;
   const slider = document.createElement("span");
   slider.className = "betterx-toggle-slider";
   toggle.append(input, slider);

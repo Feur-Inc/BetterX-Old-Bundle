@@ -37,6 +37,9 @@ declare global {
       captureElement?(rect: { x: number; y: number; width: number; height: number }): Promise<string>;
       getVersion?(): string;
       restart?(): void;
+      discordRPC?: {
+        updateActivity(details: string, state: string): void;
+      };
     };
   }
 }

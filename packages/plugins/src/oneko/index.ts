@@ -143,6 +143,7 @@ export default definePlugin({
   name: "Oneko",
   description: "A cat that follows your cursor around the screen",
   authors: [Devs.Mopi],
+  platform: "desktop",
   options: {
     speed: {
       type: OptionType.NUMBER,

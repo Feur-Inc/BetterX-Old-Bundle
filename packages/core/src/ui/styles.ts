@@ -380,6 +380,26 @@ export const BETTERX_STYLES = `
   flex-shrink: 0;
 }
 
+.betterx-platform-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--betterx-textColorSecondary);
+  color: var(--betterx-bg);
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.betterx-plugin-item-unavailable {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.betterx-plugin-item-unavailable .betterx-plugin-header {
+  pointer-events: auto;
+  cursor: default !important;
+}
+
 .betterx-option-description {
   font-size: 12px;
   color: var(--betterx-textColorSecondary);

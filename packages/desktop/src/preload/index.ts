@@ -41,6 +41,10 @@ const api: ElectronAPI = {
   getVersion: () => ipcRenderer.sendSync("app:get-version") as string,
 
   restart: () => ipcRenderer.send("app:restart"),
+
+  discordRPC: {
+    updateActivity: (details, state) => ipcRenderer.send("discord-rpc:update-activity", details, state),
+  },
 };
 
 contextBridge.exposeInMainWorld("electronAPI", api);

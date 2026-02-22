@@ -95,6 +95,11 @@ export const DesktopTab: SettingsTab = {
           desc: "Makes the window background transparent.",
           restart: true,
         },
+        {
+          key: "enableDiscordRPC",
+          label: "Discord Rich Presence",
+          desc: "Show your current X activity as Discord status.",
+        },
       ];
 
       for (const { key, label, desc, restart } of rows) {

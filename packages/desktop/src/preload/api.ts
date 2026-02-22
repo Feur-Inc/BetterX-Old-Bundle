@@ -34,4 +34,9 @@ export type ElectronAPI = {
 
   // App control
   restart(): void;
+
+  // Discord RPC
+  discordRPC: {
+    updateActivity(details: string, state: string): void;
+  };
 };

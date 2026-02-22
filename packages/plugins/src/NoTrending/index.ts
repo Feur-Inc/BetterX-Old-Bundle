@@ -8,6 +8,7 @@ type RemovedElement = {
 
 let noTrendingObserver: MutationObserver | null = null;
 let noTrendingRemoved: RemovedElement[] = [];
+let noTrendingDebounce: ReturnType<typeof setTimeout> | null = null;
 
 export default definePlugin({
   name: "NoTrending",
@@ -27,31 +28,43 @@ export default definePlugin({
           }
         });
 
-      // Explore trending
-      const explore = document.querySelector('div[aria-label^="Timeline:"][role="region"]');
+      // Explore trending — only target the Explore page timeline, not tweet conversations
+      const explore = document.querySelector('div[aria-label="Timeline: Explore"][role="region"]');
       if (explore?.parentNode) {
         const { parentNode, nextSibling } = explore;
         parentNode.removeChild(explore);
         noTrendingRemoved.push({ element: explore, parent: parentNode, nextSibling });
       }
 
-      // "Trends for you"
-      const trends = document.querySelector('div[aria-label][role="region"]');
-      if (trends?.parentNode) {
-        const { parentNode, nextSibling } = trends;
-        parentNode.removeChild(trends);
-        noTrendingRemoved.push({ element: trends, parent: parentNode, nextSibling });
-      }
+      // "Trends for you" — only target regions whose label indicates trending content
+      document
+        .querySelectorAll<HTMLElement>('div[role="region"][aria-label]')
+        .forEach((region) => {
+          const label = region.getAttribute("aria-label") ?? "";
+          if (/trend/i.test(label) && region.parentNode) {
+            const { parentNode, nextSibling } = region;
+            parentNode.removeChild(region);
+            noTrendingRemoved.push({ element: region, parent: parentNode, nextSibling });
+          }
+        });
     };
 
     removeTrending();
-    noTrendingObserver = new MutationObserver(removeTrending);
+    noTrendingObserver = new MutationObserver(() => {
+      if (noTrendingDebounce) clearTimeout(noTrendingDebounce);
+      noTrendingDebounce = setTimeout(() => {
+        noTrendingDebounce = null;
+        removeTrending();
+      }, 300);
+    });
     noTrendingObserver.observe(document.body, { childList: true, subtree: true });
   },
 
   stop() {
     noTrendingObserver?.disconnect();
     noTrendingObserver = null;
+    if (noTrendingDebounce) clearTimeout(noTrendingDebounce);
+    noTrendingDebounce = null;
 
     for (const { element, parent, nextSibling } of noTrendingRemoved) {
       if (nextSibling) {

@@ -19,6 +19,7 @@
   "dependencies": {
     "@betterx/core": "*",
     "@betterx/plugins": "*",
+    "@xhayper/discord-rpc": "^1.3.0",
     "electron-store": "^10.0.0",
     "electron-updater": "^6.6.2"
   },

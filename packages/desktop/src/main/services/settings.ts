@@ -10,6 +10,7 @@ export type DesktopSettings = {
   minimizeToTray: boolean;
   autoStart: boolean;
   checkForUpdates: boolean;
+  enableDiscordRPC: boolean;
 };
 
 const DEFAULT_SETTINGS: DesktopSettings = {
@@ -20,6 +21,7 @@ const DEFAULT_SETTINGS: DesktopSettings = {
   minimizeToTray: true,
   autoStart: false,
   checkForUpdates: true,
+  enableDiscordRPC: false,
 };
 
 export const settingsStore = new Store<DesktopSettings>({

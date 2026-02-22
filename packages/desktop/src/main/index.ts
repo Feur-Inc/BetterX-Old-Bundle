@@ -22,7 +22,9 @@ import { registerThemeHandlers } from "./ipc/themes.js";
 import { registerSettingsHandlers } from "./ipc/settings.js";
 import { registerUpdateHandlers } from "./ipc/update.js";
 import { registerCaptureHandlers } from "./ipc/capture.js";
-import { getSetting, setSetting } from "./services/settings.js";
+import { registerDiscordRPCHandlers } from "./ipc/discord-rpc.js";
+import { getSetting, setSetting, settingsStore } from "./services/settings.js";
+import { initializeDiscordRPC, destroyDiscordRPC } from "./services/discord-rpc.js";
 import {
   checkForBundleUpdate,
   applyBundleUpdate,
@@ -102,6 +104,7 @@ app.whenReady().then(async () => {
   registerThemeHandlers();
   registerSettingsHandlers();
   registerUpdateHandlers();
+  registerDiscordRPCHandlers();
   ipcMain.on("app:restart", () => {
     app.relaunch();
     app.exit(0);
@@ -128,6 +131,19 @@ app.whenReady().then(async () => {
   if (getSetting("startMinimized")) {
     mainWindow.minimize();
   }
+
+  // Discord RPC
+  if (getSetting("enableDiscordRPC")) {
+    void initializeDiscordRPC();
+  }
+
+  settingsStore.onDidChange("enableDiscordRPC", (enabled) => {
+    if (enabled) {
+      void initializeDiscordRPC();
+    } else {
+      void destroyDiscordRPC();
+    }
+  });
 
   // ─── Bundle hot-reload ──────────────────────────────────────────────────────
   // Watch the bundle directory for changes (Vite does atomic renames, so
@@ -160,6 +176,7 @@ app.on("second-instance", () => {
 
 app.on("before-quit", () => {
   (app as typeof app & { isQuitting: boolean }).isQuitting = true;
+  void destroyDiscordRPC();
 });
 
 app.on("window-all-closed", () => {

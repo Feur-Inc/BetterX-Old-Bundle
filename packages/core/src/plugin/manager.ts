@@ -3,6 +3,7 @@ import type {
   Plugin,
   PluginDefinition,
   PluginOptionDefs,
+  PluginPlatform,
   PluginStorageData,
 } from "../types/plugin.js";
 import { logger } from "../utils/logger.js";
@@ -25,11 +26,18 @@ export class PluginManager {
    * generic that is invariant due to the typed `this` parameter.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async initialize(definitions: ReadonlyArray<PluginDefinition<any>>): Promise<void> {
+  async initialize(definitions: ReadonlyArray<PluginDefinition<any>>, platform?: PluginPlatform): Promise<void> {
     const saved = await this.storage.getPluginStates();
 
     for (const def of definitions) {
+      const incompatible = !!(def.platform && platform && def.platform !== platform);
       const plugin = this.hydratePlugin(def, saved[def.name]);
+
+      if (incompatible) {
+        plugin.unavailable = true;
+        plugin.enabled = false;
+      }
+
       this.plugins.set(def.name, plugin);
 
       if (plugin.enabled) {
@@ -71,7 +79,7 @@ export class PluginManager {
 
   async toggle(name: string): Promise<void> {
     const plugin = this.plugins.get(name);
-    if (!plugin) return;
+    if (!plugin || plugin.unavailable) return;
 
     if (plugin.enabled) {
       plugin.enabled = false;
@@ -123,6 +131,7 @@ export class PluginManager {
   private async persist(): Promise<void> {
     const states: Record<string, PluginStorageData> = {};
     for (const [name, plugin] of this.plugins) {
+      if (plugin.unavailable) continue;
       states[name] = {
         enabled: plugin.enabled,
         settings: { ...(plugin.settings.store as Record<string, unknown>) },

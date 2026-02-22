@@ -1,7 +1,7 @@
 // ─── @betterx/core ────────────────────────────────────────────────────────────
 
 // Types
-export type { Plugin, PluginDefinition, PluginOptionDefs, PluginOptionDef, PluginStorageData, Developer, InferredStore, OptionTypeKey, OptionValueMap, SelectOption } from "./types/plugin.js";
+export type { Plugin, PluginDefinition, PluginPlatform, PluginOptionDefs, PluginOptionDef, PluginStorageData, Developer, InferredStore, OptionTypeKey, OptionValueMap, SelectOption } from "./types/plugin.js";
 export type { Theme, ThemeStorageState } from "./types/theme.js";
 export type { IStorage } from "./types/storage.js";
 export type { NotificationOptions, NotificationType, NotificationAction } from "./types/notification.js";

@@ -1,4 +1,4 @@
-import { definePlugin, Devs, OptionType, logger } from "@betterx/core";
+import { definePlugin, Devs, OptionType, logger, detectAccentColor } from "@betterx/core";
 
 class ClickEffect {
   private startTime = Date.now();
@@ -7,8 +7,10 @@ class ClickEffect {
   draw(ctx: CanvasRenderingContext2D, color: string): void {
     const elapsed = Date.now() - this.startTime;
     const progress = Math.min(1, elapsed / 650);
-    const eased = progress * progress * (2.70158 * progress - 1.70158) * progress + 1;
-    const radius = eased * 8;
+    const c1 = 1.70158;
+    const c3 = c1 + 1;
+    const eased = 1 + c3 * Math.pow(progress - 1, 3) + c1 * Math.pow(progress - 1, 2);
+    const radius = eased * 30;
     const alpha = 1 - eased;
 
     ctx.beginPath();
@@ -45,17 +47,24 @@ let effects: ClickEffect[] = [];
 let raf: number | null = null;
 let clickHandler: ((e: MouseEvent) => void) | null = null;
 let resizeHandler: (() => void) | null = null;
+let cachedAccentColor = "#1d9bf0";
 
 export default definePlugin({
   name: "ClickEffects",
   description: "Displays animated ripple circles when clicking on the page",
   authors: [Devs.Mopi],
   options: {
+    useAccentColor: {
+      type: OptionType.BOOLEAN,
+      default: true,
+      label: "Use accent color",
+      description: "Use your X accent color instead of a custom color",
+    },
     color: {
       type: OptionType.STRING,
       default: "#1d9bf0",
-      label: "Effect color",
-      description: "Color of the click effect (hex, rgb, or rgba)",
+      label: "Custom color",
+      description: "Color of the click effect (hex, rgb, or rgba). Only used when accent color is off.",
     },
   },
 
@@ -83,10 +92,11 @@ export default definePlugin({
       document.addEventListener("click", clickHandler);
 
       const store = this.settings.store;
+      detectAccentColor().then((c) => { cachedAccentColor = c; }).catch(() => {});
       const render = (): void => {
         if (!ctx || !canvas) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const color = store.color;
+        const color = store.useAccentColor ? cachedAccentColor : store.color;
         effects = effects.filter((fx: ClickEffect) => {
           if (fx.isDone()) return false;
           fx.draw(ctx!, color);

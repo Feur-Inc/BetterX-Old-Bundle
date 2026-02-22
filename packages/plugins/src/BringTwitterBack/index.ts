@@ -15,6 +15,7 @@ function findXLogoPath(): SVGPathElement | null {
 let btbObservers: MutationObserver[] = [];
 let btbStyleEl: HTMLStyleElement | null = null;
 let btbBlueskyStyleEl: HTMLStyleElement | null = null;
+let btbDebounce: ReturnType<typeof setTimeout> | null = null;
 
 function findAccentColor(): string {
   const stored = localStorage.getItem("twitter-accent-color");
@@ -50,12 +51,12 @@ function updateTitle(): void {
   const title = document.querySelector("title");
   if (!title?.textContent) return;
   const t = title.textContent;
-  if (!t.includes("X")) return;
-  document.title = t
+  const updated = t
     .replace(" / X", " / Twitter")
     .replace(" on X: ", " on Twitter: ")
     .replace("X. It's what's happening", "Twitter. It's what's happening")
     .replace(/^X$/, "Twitter");
+  if (updated !== t) document.title = updated;
 }
 
 export default definePlugin({
@@ -178,7 +179,13 @@ export default definePlugin({
 
     // ── Body observer for dynamic content ────────────────────────────────────
     // Also watch `d` attribute — React may patch the logo path instead of replacing the node
-    const observer = new MutationObserver(updateUI);
+    const observer = new MutationObserver(() => {
+      if (btbDebounce) clearTimeout(btbDebounce);
+      btbDebounce = setTimeout(() => {
+        btbDebounce = null;
+        updateUI();
+      }, 200);
+    });
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["d"] });
     btbObservers.push(observer);
 
@@ -188,6 +195,8 @@ export default definePlugin({
   stop() {
     for (const obs of btbObservers) obs.disconnect();
     btbObservers = [];
+    if (btbDebounce) clearTimeout(btbDebounce);
+    btbDebounce = null;
     btbStyleEl?.remove();
     btbBlueskyStyleEl?.remove();
     btbStyleEl = null;

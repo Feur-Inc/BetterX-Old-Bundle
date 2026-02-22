@@ -22,14 +22,19 @@
     {
       "matches": ["https://x.com/*", "https://twitter.com/*"],
       "js": ["src/content/index.ts"],
-      "run_at": "document_idle",
-      "world": "MAIN"
+      "run_at": "document_idle"
     }
   ],
   "background": {
     "service_worker": "src/background/index.ts",
     "type": "module"
   },
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*"],
+      "matches": ["https://x.com/*", "https://twitter.com/*"]
+    }
+  ],
   "action": {
     "default_popup": "src/popup/index.html",
     "default_title": "BetterX V3"

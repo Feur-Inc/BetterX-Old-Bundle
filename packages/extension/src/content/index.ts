@@ -1,5 +1,5 @@
 // ─── BetterX Content Script ───────────────────────────────────────────────────
-// Runs in MAIN world — same JS context as X.com.
+// Runs in ISOLATED world — has chrome.* API access while still sharing the DOM.
 
 import {
   PluginManager,
@@ -42,13 +42,16 @@ async function init(): Promise<void> {
   await themeManager.initialize();
 
   // 5. Init plugins
-  await pluginManager.initialize(allPlugins);
+  await pluginManager.initialize(allPlugins, "extension");
 
   // 6. Apply accent color
   applyAccentColor();
 
   // 7. Register built-in tabs
-  const logoUrl = chrome.runtime.getURL("icons/icon128.png");
+  // Fetch the icon from the extension and create a blob URL so the page DOM can
+  // display it without web_accessible_resources / CSP issues.
+  const iconResp = await fetch(chrome.runtime.getURL("icons/icon128.png"));
+  const logoUrl = URL.createObjectURL(await iconResp.blob());
   const ctx = { pluginManager, themeManager, notifications, logoUrl };
   TabRegistry.register(PluginsTab);
   TabRegistry.register(ThemesTab);
