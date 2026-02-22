@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo_full.png" alt="BetterX" width="600">
+  <img src="betterx_full.png" alt="BetterX" width="600">
 </p>
 
 <p align="center">
