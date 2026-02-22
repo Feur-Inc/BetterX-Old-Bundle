@@ -139,7 +139,7 @@ export default definePlugin({
 });
 ```
 
-Add your plugin to `packages/plugins/src/index.ts` and it will appear in the settings panel on both platforms.
+Add your plugin to `packages/plugins/src/MyPlugin/index.ts` and it will appear in the settings panel on both platforms.
 
 ---
 

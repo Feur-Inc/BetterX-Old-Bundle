@@ -37,6 +37,10 @@ function buildCSS(color: string): string {
     (c) => `[style*="border-color: rgb(${c})"]`
   ).join(",\n");
 
+  const inlineStrokeSelectors = X_ACCENT_COLORS.map(
+    (c) => `[style*="stroke: rgb(${c})"]`
+  ).join(",\n");
+
   return `
 /* ── BetterX Custom Accent Color ─────────────────────────────────────────── */
 
@@ -72,7 +76,10 @@ function buildCSS(color: string): string {
 
 /* Accent text color */
 .r-1nao33i[style*="color"],
-.r-1cvl2hr {
+.r-1cvl2hr,
+.r-vkub15,
+.r-9l7dzd,
+.r-o6sn0f {
   color: ${color} !important;
 }
 
@@ -91,12 +98,35 @@ ${inlineBorderSelectors} {
   border-color: ${color} !important;
 }
 
+/* Override inline style accent strokes (spinners, progress circles) */
+${inlineStrokeSelectors} {
+  stroke: ${color} !important;
+}
+
 /* Accent border classes */
 .r-vhj8yc {
   border-color: ${color} !important;
 }
 .r-1pbtemp {
   border-right-color: ${color} !important;
+}
+.r-b5kvu3 {
+  border-color: ${color} !important;
+}
+
+/* Notification dot, checkmark circle, accent indicators */
+.r-4nw3r4:not([data-testid="videoComponent"] *) {
+  background-color: ${color} !important;
+}
+
+/* Poll winning bar fill */
+.r-1er0wu3 {
+  background-color: rgba(${r}, ${g}, ${b}, 0.55) !important;
+}
+
+/* Selected option border/outline */
+.r-edyy15 {
+  border-color: ${color} !important;
 }
 
 /* Tweet/Post button */
