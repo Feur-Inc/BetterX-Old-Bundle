@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow } from "electron";
+import { ipcMain, BrowserWindow, shell } from "electron";
 import { join } from "path";
 import { mkdir, readdir, readFile, writeFile, unlink } from "fs/promises";
 import { app } from "electron";
@@ -46,5 +46,10 @@ export function registerThemeHandlers(): void {
     } catch {
       // ignore
     }
+  });
+
+  ipcMain.handle("themes:openFolder", async () => {
+    await ensureThemesDir();
+    await shell.openPath(THEMES_DIR);
   });
 }

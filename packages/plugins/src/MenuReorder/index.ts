@@ -1,21 +1,139 @@
-import { definePlugin, Devs, OptionType } from "@betterx/core";
+import { definePlugin, Devs, OptionType, injectStyle, removeStyle } from "@betterx/core";
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = "betterx_menu_order";
 const HIDDEN_KEY = "betterx_menu_hidden";
+const DEFAULT_KEY = "betterx_menu_default";
+const STYLE_ID = "bx-menu-reorder-styles";
+const ATTR = "data-bx-reorder";
 
-let menuReorderObserver: MutationObserver | null = null;
-let menuReorderCleanupFns: (() => void)[] = [];
-let menuReorderHidden: string[] = [];
+/** Multiple selectors to find the primary nav, matching core/button.ts strategy. */
+const NAV_SELECTORS = [
+  'nav[aria-label="Primary"]',
+  '[data-testid="AppTabBar_Home_Link"]',
+  'a[href="/home"]',
+];
 
-function itemId(item: HTMLElement): string {
-  const link = item.querySelector("a");
-  return link?.getAttribute("href") ?? item.textContent?.trim() ?? "";
+// ─── CSS ──────────────────────────────────────────────────────────────────────
+
+const CSS = `
+/* Drag feedback */
+[${ATTR}] > [draggable="true"] {
+  cursor: grab;
+  transition: opacity 0.15s, transform 0.15s;
+}
+[${ATTR}] > [draggable="true"]:active {
+  cursor: grabbing;
+}
+[${ATTR}] > .bx-dragging {
+  opacity: 0.4;
+  transform: scale(0.97);
+}
+[${ATTR}] > .bx-drag-above {
+  box-shadow: 0 -2px 0 0 var(--bx-reorder-accent, #1d9bf0);
+}
+[${ATTR}] > .bx-drag-below {
+  box-shadow: 0 2px 0 0 var(--bx-reorder-accent, #1d9bf0);
+}
+[${ATTR}] > .bx-hidden-item {
+  display: none !important;
 }
 
-function saveOrder(nav: HTMLElement): void {
-  const items = Array.from(nav.querySelectorAll<HTMLElement>("li"));
-  const order = items.map((item) => itemId(item));
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(order));
+/* Context menu */
+.bx-reorder-ctx {
+  position: fixed;
+  z-index: 10002;
+  background: var(--bx-reorder-ctx-bg, #15202b);
+  border: 1px solid var(--bx-reorder-ctx-border, #38444d);
+  border-radius: 12px;
+  padding: 4px;
+  min-width: 180px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.bx-reorder-ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--bx-reorder-ctx-text, #e7e9ea);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.1s;
+  user-select: none;
+}
+.bx-reorder-ctx-item:hover {
+  background: var(--bx-reorder-ctx-hover, rgba(239, 243, 244, 0.1));
+}
+.bx-reorder-ctx-item.bx-danger {
+  color: #f4212e;
+}
+.bx-reorder-ctx-sep {
+  height: 1px;
+  background: var(--bx-reorder-ctx-border, #38444d);
+  margin: 4px 8px;
+}
+`;
+
+// ─── State ────────────────────────────────────────────────────────────────────
+
+let observer: MutationObserver | null = null;
+let cleanupFns: (() => void)[] = [];
+let hiddenIds: Set<string> = new Set();
+let currentNav: HTMLElement | null = null;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Get a stable identifier for a nav item.
+ *  The item itself may be an <a> or <button>, so check attributes on the element
+ *  first before searching children. */
+function getItemId(el: HTMLElement): string {
+  // Direct attributes (current Twitter layout: <a href="..."> or <button data-testid="...">)
+  if (el.getAttribute("href")) return el.getAttribute("href")!;
+  if (el.getAttribute("data-testid")) return el.getAttribute("data-testid")!;
+  if (el.getAttribute("aria-label")) return el.getAttribute("aria-label")!;
+  // Child search fallback (older layouts with <li> wrappers)
+  const link = el.querySelector("a[href]");
+  if (link) return link.getAttribute("href")!;
+  const testId = el.querySelector("[data-testid]");
+  if (testId) return testId.getAttribute("data-testid")!;
+  const label = el.querySelector("[aria-label]");
+  if (label) return label.getAttribute("aria-label")!;
+  return "";
+}
+
+function findNav(): HTMLElement | null {
+  for (const sel of NAV_SELECTORS) {
+    const el = document.querySelector<HTMLElement>(sel);
+    if (!el) continue;
+    // First selector targets the nav directly, others target children
+    if (sel === NAV_SELECTORS[0]) return el;
+    // Walk up to find the nav/ul parent
+    let parent = el.parentElement;
+    while (parent && parent !== document.body) {
+      if (parent.tagName === "NAV") return parent;
+      parent = parent.parentElement;
+    }
+  }
+  return null;
+}
+
+/** BetterX nav button ID — skip this when collecting reorderable items. */
+const BX_NAV_BTN_ID = "betterx-nav-btn";
+
+function getNavItems(nav: HTMLElement): HTMLElement[] {
+  // Current Twitter layout: direct <a> and <button> children inside <nav>.
+  // Older layout: <ul> > <li> children.
+  const list = nav.querySelector("ul") ?? nav;
+  return Array.from(list.children).filter((el): el is HTMLElement => {
+    if (!(el instanceof HTMLElement)) return false;
+    // Skip the BetterX nav button
+    if (el.id === BX_NAV_BTN_ID) return false;
+    // Accept <a>, <button>, or <li> (covers both old and new layouts)
+    return el.tagName === "A" || el.tagName === "BUTTON" || el.tagName === "LI";
+  });
 }
 
 function getSavedOrder(): string[] {
@@ -26,113 +144,274 @@ function getSavedOrder(): string[] {
   }
 }
 
-function getHiddenItems(): string[] {
+function saveOrder(nav: HTMLElement): void {
+  const ids = getNavItems(nav).map(getItemId).filter(Boolean);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+}
+
+function loadHidden(): Set<string> {
   try {
-    return JSON.parse(localStorage.getItem(HIDDEN_KEY) ?? "[]") as string[];
+    return new Set(JSON.parse(localStorage.getItem(HIDDEN_KEY) ?? "[]") as string[]);
   } catch {
-    return [];
+    return new Set();
   }
 }
+
+function saveHidden(): void {
+  localStorage.setItem(HIDDEN_KEY, JSON.stringify([...hiddenIds]));
+}
+
+function detectCtxTheme(menu: HTMLElement): void {
+  const bg = getComputedStyle(document.body).backgroundColor;
+  const match = bg.match(/\d+/g);
+  if (match && match.length >= 3) {
+    const [r, g, b] = match.map(Number) as [number, number, number];
+    const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    if (lum > 0.5) {
+      menu.style.setProperty("--bx-reorder-ctx-bg", "#ffffff");
+      menu.style.setProperty("--bx-reorder-ctx-border", "#cfd9de");
+      menu.style.setProperty("--bx-reorder-ctx-text", "#0f1419");
+      menu.style.setProperty("--bx-reorder-ctx-hover", "rgba(15, 20, 25, 0.06)");
+    }
+  }
+}
+
+// ─── Context menu ─────────────────────────────────────────────────────────────
 
 function showContextMenu(e: MouseEvent, item: HTMLElement, nav: HTMLElement): void {
   e.preventDefault();
-
-  document.querySelector(".bx-menu-context")?.remove();
+  document.querySelector(".bx-reorder-ctx")?.remove();
 
   const menu = document.createElement("div");
-  menu.className = "bx-menu-context";
-  menu.style.cssText = `position:fixed;top:${e.clientY}px;left:${e.clientX}px;background:var(--betterx-modalBg,#1e1e2e);border:1px solid var(--betterx-borderColor,#3a3a52);border-radius:8px;padding:4px;z-index:10001;min-width:150px;box-shadow:0 8px 24px rgba(0,0,0,0.4);`;
+  menu.className = "bx-reorder-ctx";
+  detectCtxTheme(menu);
 
-  const makeOption = (label: string, onClick: () => void): HTMLElement => {
-    const opt = document.createElement("div");
-    opt.textContent = label;
-    opt.style.cssText = `padding:7px 12px;cursor:pointer;font-size:14px;color:var(--betterx-textColor,#e0e0f0);border-radius:6px;`;
-    opt.addEventListener("mouseenter", () => { opt.style.background = "var(--betterx-hoverBg,#35354a)"; });
-    opt.addEventListener("mouseleave", () => { opt.style.background = ""; });
-    opt.addEventListener("click", () => {
+  // Position ensuring it stays in viewport
+  let top = e.clientY;
+  let left = e.clientX;
+  document.body.appendChild(menu);
+  const rect = menu.getBoundingClientRect();
+  if (top + rect.height > window.innerHeight - 8) top = window.innerHeight - rect.height - 8;
+  if (left + rect.width > window.innerWidth - 8) left = window.innerWidth - rect.width - 8;
+  if (top < 8) top = 8;
+  if (left < 8) left = 8;
+  menu.style.top = `${top}px`;
+  menu.style.left = `${left}px`;
+
+  const addItem = (icon: string, label: string, danger: boolean, onClick: () => void): void => {
+    const el = document.createElement("div");
+    el.className = `bx-reorder-ctx-item${danger ? " bx-danger" : ""}`;
+    el.innerHTML = `<span>${icon}</span><span>${label}</span>`;
+    el.addEventListener("click", () => {
       menu.remove();
       onClick();
     });
-    return opt;
+    menu.appendChild(el);
   };
 
-  menu.appendChild(makeOption("Hide this item", () => {
-    const id = itemId(item);
-    item.style.display = "none";
-    if (!menuReorderHidden.includes(id)) {
-      menuReorderHidden.push(id);
-      localStorage.setItem(HIDDEN_KEY, JSON.stringify(menuReorderHidden));
+  const addSep = (): void => {
+    const sep = document.createElement("div");
+    sep.className = "bx-reorder-ctx-sep";
+    menu.appendChild(sep);
+  };
+
+  const id = getItemId(item);
+  const isHidden = hiddenIds.has(id);
+
+  if (isHidden) {
+    addItem("👁", "Show this item", false, () => {
+      hiddenIds.delete(id);
+      saveHidden();
+      item.classList.remove("bx-hidden-item");
+    });
+  } else {
+    addItem("🙈", "Hide this item", false, () => {
+      hiddenIds.add(id);
+      saveHidden();
+      item.classList.add("bx-hidden-item");
+    });
+  }
+
+  addItem("⬆", "Move to top", false, () => {
+    const list = item.parentElement;
+    if (list) {
+      list.insertBefore(item, list.firstElementChild);
+      saveOrder(nav);
     }
-  }));
+  });
 
-  menu.appendChild(makeOption("Reset menu", () => {
-    menuReorderHidden = [];
+  addItem("⬇", "Move to bottom", false, () => {
+    const list = item.parentElement;
+    if (list) {
+      list.appendChild(item);
+      saveOrder(nav);
+    }
+  });
+
+  addSep();
+
+  if (hiddenIds.size > 0) {
+    addItem("👁", "Show all hidden items", false, () => {
+      hiddenIds.clear();
+      saveHidden();
+      getNavItems(nav).forEach((li) => li.classList.remove("bx-hidden-item"));
+    });
+  }
+
+  addItem("↩", "Reset menu order", true, () => {
+    hiddenIds.clear();
     localStorage.removeItem(HIDDEN_KEY);
-    Array.from(nav.querySelectorAll<HTMLElement>("li")).forEach((li) => { li.style.display = ""; });
-  }));
+    localStorage.removeItem(STORAGE_KEY);
+    saveHidden();
 
-  document.body.appendChild(menu);
+    // Reset visibility immediately
+    getNavItems(nav).forEach((li) => li.classList.remove("bx-hidden-item"));
 
+    // Reset order immediately if we have a captured default
+    const defaultOrderRaw = localStorage.getItem(DEFAULT_KEY);
+    if (defaultOrderRaw) {
+      try {
+        const defaultOrder = JSON.parse(defaultOrderRaw) as string[];
+        const list = nav.querySelector("ul") ?? nav;
+        const items = getNavItems(nav);
+        const byId = new Map(items.map((el) => [getItemId(el), el]));
+
+        for (const id of defaultOrder) {
+          const el = byId.get(id);
+          if (el) {
+            list.appendChild(el);
+            byId.delete(id);
+          }
+        }
+        // Any new items not in our captured default go at the bottom
+        for (const el of byId.values()) {
+          list.appendChild(el);
+        }
+      } catch (err) {
+        console.error("[BetterX] Failed to restore default menu order:", err);
+        window.location.reload();
+      }
+    } else {
+      // If we don't have a default yet, we have to reload to get it back
+      window.location.reload();
+    }
+  });
+
+  // Close on outside click
   const close = (ev: MouseEvent): void => {
     if (!menu.contains(ev.target as Node)) {
       menu.remove();
-      document.removeEventListener("click", close, true);
+      document.removeEventListener("mousedown", close, true);
     }
   };
-  setTimeout(() => document.addEventListener("click", close, true), 0);
+  requestAnimationFrame(() => document.addEventListener("mousedown", close, true));
+  cleanupFns.push(() => {
+    menu.remove();
+    document.removeEventListener("mousedown", close, true);
+  });
 }
 
-function setupDragAndDrop(nav: HTMLElement): void {
-  const items = Array.from(nav.querySelectorAll<HTMLElement>("li"));
+// ─── Drag and drop ────────────────────────────────────────────────────────────
+
+function setupReorder(nav: HTMLElement): void {
+  const items = getNavItems(nav);
   if (items.length === 0) return;
 
-  // Restore hidden state
-  for (const item of items) {
-    if (menuReorderHidden.includes(itemId(item))) {
-      item.style.display = "none";
-    }
-  }
-
-  const savedOrder = getSavedOrder();
-
   // Apply saved order
-  if (savedOrder.length > 0) {
-    const sorted = savedOrder
-      .map((id: string) => items.find((item: HTMLElement) => itemId(item) === id))
-      .filter((item: HTMLElement | undefined): item is HTMLElement => item !== undefined);
-    for (const other of items) {
-      if (!sorted.includes(other)) sorted.push(other);
+  const saved = getSavedOrder();
+  if (saved.length > 0) {
+    const list = nav.querySelector("ul") ?? nav;
+    const byId = new Map(items.map((el) => [getItemId(el), el]));
+    const sorted: HTMLElement[] = [];
+    for (const id of saved) {
+      const el = byId.get(id);
+      if (el) {
+        sorted.push(el);
+        byId.delete(id);
+      }
     }
-    const parent = nav.querySelector("ul") ?? nav;
-    sorted.forEach((item) => parent.appendChild(item));
+    // Append any new/unknown items at the end
+    for (const el of byId.values()) sorted.push(el);
+    for (const el of sorted) list.appendChild(el);
+  } else {
+    // If we have no saved order, this IS currently the default order.
+    // Update our captured default to stay in sync with Twitter's default.
+    const ids = items.map(getItemId).filter(Boolean);
+    if (ids.length > 0) {
+      localStorage.setItem(DEFAULT_KEY, JSON.stringify(ids));
+    }
   }
 
+  // Apply hidden state
+  for (const item of items) {
+    if (hiddenIds.has(getItemId(item))) {
+      item.classList.add("bx-hidden-item");
+    }
+  }
+
+  // Drag and drop
   let dragged: HTMLElement | null = null;
 
   for (const item of items) {
     item.setAttribute("draggable", "true");
 
-    const onDragStart = (): void => {
+    const onDragStart = (e: DragEvent): void => {
       dragged = item;
-      item.style.opacity = "0.5";
+      item.classList.add("bx-dragging");
+      // Required for Firefox
+      e.dataTransfer?.setData("text/plain", "");
     };
+
     const onDragEnd = (): void => {
-      item.style.opacity = "";
-      dragged = null;
-      saveOrder(nav);
+      item.classList.remove("bx-dragging");
+      // Clear all indicators
+      for (const li of getNavItems(nav)) {
+        li.classList.remove("bx-drag-above", "bx-drag-below");
+      }
+      if (dragged) {
+        saveOrder(nav);
+        dragged = null;
+      }
     };
+
     const onDragOver = (e: DragEvent): void => {
       e.preventDefault();
       if (!dragged || dragged === item) return;
+
+      // Clear previous indicators
+      for (const li of getNavItems(nav)) {
+        li.classList.remove("bx-drag-above", "bx-drag-below");
+      }
+
       const rect = item.getBoundingClientRect();
       const midY = rect.top + rect.height / 2;
+      if (e.clientY < midY) {
+        item.classList.add("bx-drag-above");
+      } else {
+        item.classList.add("bx-drag-below");
+      }
+    };
+
+    const onDrop = (e: DragEvent): void => {
+      e.preventDefault();
+      if (!dragged || dragged === item) return;
+
       const parent = item.parentElement;
       if (!parent) return;
+
+      const rect = item.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
       if (e.clientY < midY) {
         parent.insertBefore(dragged, item);
       } else {
         parent.insertBefore(dragged, item.nextSibling);
       }
+
+      item.classList.remove("bx-drag-above", "bx-drag-below");
+    };
+
+    const onDragLeave = (): void => {
+      item.classList.remove("bx-drag-above", "bx-drag-below");
     };
 
     const onContextMenu = (e: MouseEvent): void => showContextMenu(e, item, nav);
@@ -140,59 +419,81 @@ function setupDragAndDrop(nav: HTMLElement): void {
     item.addEventListener("dragstart", onDragStart);
     item.addEventListener("dragend", onDragEnd);
     item.addEventListener("dragover", onDragOver);
+    item.addEventListener("drop", onDrop);
+    item.addEventListener("dragleave", onDragLeave);
     item.addEventListener("contextmenu", onContextMenu);
 
-    menuReorderCleanupFns.push(() => {
+    cleanupFns.push(() => {
       item.removeEventListener("dragstart", onDragStart);
       item.removeEventListener("dragend", onDragEnd);
       item.removeEventListener("dragover", onDragOver);
+      item.removeEventListener("drop", onDrop);
+      item.removeEventListener("dragleave", onDragLeave);
       item.removeEventListener("contextmenu", onContextMenu);
       item.removeAttribute("draggable");
+      item.classList.remove("bx-dragging", "bx-drag-above", "bx-drag-below", "bx-hidden-item");
     });
   }
 }
 
+// ─── Plugin definition ────────────────────────────────────────────────────────
+
 export default definePlugin({
   name: "MenuReorder",
-  description: "Allows drag-and-drop reordering of navigation menu items",
+  description: "Drag-and-drop reordering and hiding of navigation menu items",
   authors: [Devs.TPM28, Devs.Mopi],
-  requiresRestart: true,
   options: {
     enableReordering: {
       type: OptionType.BOOLEAN,
       default: true,
+      label: "Enable reordering",
       description: "Allow menu items to be reordered by drag and drop",
     },
   },
 
   start() {
-    menuReorderHidden = getHiddenItems();
+    injectStyle(CSS, STYLE_ID);
+    hiddenIds = loadHidden();
 
     if (!this.settings.store.enableReordering) return;
 
     const tryInit = (): void => {
-      const nav = document.querySelector<HTMLElement>('nav[aria-label="Primary"]');
-      if (!nav || nav.dataset["bxReorder"]) return;
-      nav.dataset["bxReorder"] = "1";
-      setupDragAndDrop(nav);
+      const nav = findNav();
+      if (!nav) return;
+
+      // If the nav was already set up and is still the same DOM node, skip
+      if (nav === currentNav && nav.hasAttribute(ATTR)) return;
+
+      // If the nav was reconstructed (SPA navigation), clean up old listeners
+      if (currentNav && currentNav !== nav) {
+        for (const fn of cleanupFns) fn();
+        cleanupFns = [];
+      }
+
+      nav.setAttribute(ATTR, "1");
+      currentNav = nav;
+      setupReorder(nav);
     };
 
-    menuReorderObserver = new MutationObserver(tryInit);
-    menuReorderObserver.observe(document.body, { childList: true, subtree: true });
-    setTimeout(tryInit, 500);
+    observer = new MutationObserver(tryInit);
+    observer.observe(document.body, { childList: true, subtree: true });
+    tryInit();
   },
 
   stop() {
-    menuReorderObserver?.disconnect();
-    menuReorderObserver = null;
-    for (const fn of menuReorderCleanupFns) fn();
-    menuReorderCleanupFns = [];
-    document.querySelector(".bx-menu-context")?.remove();
-    const nav = document.querySelector<HTMLElement>('nav[aria-label="Primary"]');
-    if (nav) {
-      delete nav.dataset["bxReorder"];
-      Array.from(nav.querySelectorAll<HTMLElement>("li")).forEach((li) => { li.style.display = ""; });
+    observer?.disconnect();
+    observer = null;
+    for (const fn of cleanupFns) fn();
+    cleanupFns = [];
+    document.querySelector(".bx-reorder-ctx")?.remove();
+    if (currentNav) {
+      currentNav.removeAttribute(ATTR);
+      getNavItems(currentNav).forEach((li) => {
+        li.classList.remove("bx-hidden-item", "bx-dragging", "bx-drag-above", "bx-drag-below");
+      });
     }
-    menuReorderHidden = [];
+    currentNav = null;
+    hiddenIds.clear();
+    removeStyle(STYLE_ID);
   },
 });

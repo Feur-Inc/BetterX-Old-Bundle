@@ -54,8 +54,14 @@ async function init(): Promise<void> {
   applyAccentColor();
 
   // 7. Register tabs
-  const logoUrl = "betterx://assets/icon.png";
-  const ctx = { pluginManager, themeManager, notifications, logoUrl };
+  const logoUrl = "betterx://assets/icon.svg";
+  const ctx = {
+    pluginManager,
+    themeManager,
+    notifications,
+    logoUrl,
+    openThemesFolder: () => { window.electronAPI?.themes.openFolder(); },
+  };
   TabRegistry.register(PluginsTab);
   TabRegistry.register(ThemesTab);
   TabRegistry.register(DesktopTab);

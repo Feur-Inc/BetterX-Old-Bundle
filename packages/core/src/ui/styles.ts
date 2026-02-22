@@ -72,8 +72,14 @@ export const BETTERX_STYLES = `
 .betterx-modal-title-logo {
   width: 28px;
   height: 28px;
-  object-fit: contain;
-  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.betterx-modal-title-logo svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .betterx-modal-version {
@@ -460,6 +466,27 @@ export const BETTERX_STYLES = `
 }
 .betterx-input-number:focus { border-color: var(--betterx-accentColor); }
 
+.betterx-color-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.betterx-input-color {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--betterx-borderColor);
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+  padding: 2px;
+}
+.betterx-input-color::-webkit-color-swatch-wrapper { padding: 0; }
+.betterx-input-color::-webkit-color-swatch { border: none; border-radius: 4px; }
+.betterx-input-color::-moz-color-swatch { border: none; border-radius: 4px; }
+.betterx-input-color-hex { width: 90px; font-family: monospace; }
+
 /* === Theme Editor === */
 .betterx-theme-list { display: flex; flex-direction: column; gap: 8px; }
 
@@ -518,6 +545,229 @@ export const BETTERX_STYLES = `
   margin-top: 12px;
 }
 
+/* === Theme Editor Modal === */
+#betterx-editor-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: betterxFadeIn 0.15s ease;
+}
+#betterx-editor-overlay,
+#betterx-editor-overlay * {
+  font-family: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+}
+
+.betterx-editor-modal {
+  background: var(--betterx-modalBg);
+  border: 1px solid var(--betterx-borderColor);
+  border-radius: 16px;
+  width: 900px;
+  max-width: calc(100vw - 48px);
+  height: 80vh;
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  animation: betterxSlideUp 0.2s ease;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+}
+
+.betterx-editor-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--betterx-borderColor);
+  flex-shrink: 0;
+}
+
+.betterx-editor-modal-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--betterx-textColor);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.betterx-editor-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.betterx-editor-modal-close {
+  background: none;
+  border: none;
+  color: var(--betterx-textColorSecondary);
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 16px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+.betterx-editor-modal-close:hover {
+  color: var(--betterx-textColor);
+  background: var(--betterx-hoverBg);
+}
+
+.betterx-editor-modal-body {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+.betterx-editor-modal-body .cm-editor {
+  height: 100%;
+}
+
+/* Live Reload Toggle */
+.betterx-editor-live-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--betterx-textColorSecondary);
+  user-select: none;
+  white-space: nowrap;
+}
+.betterx-editor-live-toggle .betterx-toggle {
+  width: 36px;
+  height: 20px;
+}
+.betterx-editor-live-toggle .betterx-toggle-slider::before {
+  width: 14px;
+  height: 14px;
+}
+.betterx-editor-live-toggle .betterx-toggle input:checked + .betterx-toggle-slider::before {
+  transform: translateX(16px);
+}
+
+/* Mode Selector Group (Full | Split | Window) */
+.betterx-editor-mode-group {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--betterx-borderColor);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.betterx-editor-mode-btn {
+  background: none;
+  border: none;
+  color: var(--betterx-textColorSecondary);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  line-height: 1;
+}
+.betterx-editor-mode-btn:not(:last-child) {
+  border-right: 1px solid var(--betterx-borderColor);
+}
+.betterx-editor-mode-btn:hover {
+  background: var(--betterx-hoverBg);
+  color: var(--betterx-textColor);
+}
+.betterx-editor-mode-btn.betterx-editor-mode-active {
+  background: var(--betterx-accentColor);
+  color: #fff;
+}
+
+/* Resize Handle */
+.betterx-editor-resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  z-index: 10;
+  opacity: 0.4;
+  transition: opacity 0.15s;
+}
+.betterx-editor-resize-handle::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--betterx-textColorSecondary);
+  border-bottom: 2px solid var(--betterx-textColorSecondary);
+}
+.betterx-editor-resize-handle:hover {
+  opacity: 1;
+}
+
+/* Split View Mode */
+#betterx-editor-overlay.betterx-split-mode {
+  background: none;
+  pointer-events: none;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+#betterx-editor-overlay.betterx-split-mode .betterx-editor-modal {
+  pointer-events: auto;
+  position: relative;
+  width: 50vw;
+  max-width: 50vw;
+  height: 100vh;
+  max-height: 100vh;
+  border-radius: 0;
+  animation: none;
+  box-shadow: -4px 0 32px rgba(0, 0, 0, 0.5);
+  border-right: none;
+  border-top: none;
+  border-bottom: none;
+}
+/* In split mode, resize handle becomes a left-edge drag bar */
+#betterx-editor-overlay.betterx-split-mode .betterx-editor-resize-handle {
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: auto;
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
+  border-radius: 0;
+}
+#betterx-editor-overlay.betterx-split-mode .betterx-editor-resize-handle::after {
+  content: none;
+}
+#betterx-editor-overlay.betterx-split-mode .betterx-editor-resize-handle:hover {
+  background: var(--betterx-accentColor);
+  opacity: 0.5;
+}
+
+/* Window Mode */
+#betterx-editor-overlay.betterx-window-mode {
+  background: none;
+  pointer-events: none;
+}
+#betterx-editor-overlay.betterx-window-mode .betterx-editor-modal {
+  pointer-events: auto;
+  position: fixed;
+  border-radius: 12px;
+  animation: none;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+  transition: opacity 0.15s ease;
+}
+#betterx-editor-overlay.betterx-window-mode .betterx-editor-modal-header {
+  cursor: grab;
+}
+#betterx-editor-overlay.betterx-window-mode .betterx-editor-modal-header:active {
+  cursor: grabbing;
+}
+
 /* === Developer Tab === */
 .betterx-dev-section {
   background: var(--betterx-contentBg);
@@ -543,6 +793,9 @@ export const BETTERX_STYLES = `
   align-items: center;
   padding: 24px 0;
   gap: 16px;
+}
+.betterx-tab-panel[data-tab-id="about"] {
+  overflow-y: hidden;
 }
 
 .betterx-about-logo {
@@ -716,8 +969,14 @@ export const BETTERX_STYLES = `
   width: 26px;
   height: 26px;
   flex-shrink: 0;
-  object-fit: contain;
-  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.betterx-nav-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .betterx-nav-label {
@@ -767,6 +1026,35 @@ export const BETTERX_STYLES = `
   text-align: center;
   color: var(--betterx-textColorSecondary);
   padding: 40px;
+}
+
+.betterx-drop-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 2px dashed var(--betterx-borderColor);
+  border-radius: 10px;
+  color: var(--betterx-textColorSecondary);
+  font-size: 13px;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+  cursor: default;
+}
+.betterx-drop-zone svg {
+  flex-shrink: 0;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+.betterx-drop-zone-active {
+  border-color: var(--betterx-accentColor);
+  background: rgba(29, 155, 240, 0.06);
+  color: var(--betterx-textColor);
+}
+.betterx-drop-zone-active svg {
+  opacity: 1;
+  color: var(--betterx-accentColor);
 }
 
 .betterx-drag-handle {

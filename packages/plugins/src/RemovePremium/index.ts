@@ -8,6 +8,9 @@ const SELECTORS = [
   'a[href="/i/premium_sign_up?referring_page=settings"]',
   'a[href="/jobs"]',
   'aside[aria-label*="Premium"][role="complementary"]',
+  '[aria-label="Subscribe to Premium"]',
+  'a[href="/i/jf/creators/studio"]',
+  '[aria-label="Creator Studio"]',
   'div[data-testid="inlinePrompt"]',
   'a[href="/i/account_analytics"]',
 ];

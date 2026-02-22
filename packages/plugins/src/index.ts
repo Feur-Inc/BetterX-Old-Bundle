@@ -3,6 +3,7 @@ import type { PluginDefinition } from "@betterx/core";
 import AdBlocker from "./AdBlocker/index.js";
 import BringTwitterBack from "./BringTwitterBack/index.js";
 import ClickEffects from "./ClickEffects/index.js";
+import CustomAccentColor from "./CustomAccentColor/index.js";
 import DontOverthink from "./DontOverthink/index.js";
 import FixUpX from "./FixUpX/index.js";
 import GifFavorites from "./GifFavorites/index.js";
@@ -24,6 +25,7 @@ export const allPlugins: PluginDefinition<any>[] = [
   AdBlocker,
   BringTwitterBack,
   ClickEffects,
+  CustomAccentColor,
   DontOverthink,
   FixUpX,
   GifFavorites,
@@ -43,6 +45,7 @@ export {
   AdBlocker,
   BringTwitterBack,
   ClickEffects,
+  CustomAccentColor,
   DontOverthink,
   FixUpX,
   GifFavorites,

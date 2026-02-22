@@ -65,7 +65,10 @@ export class PluginManager {
       ...def,
       enabled: saved?.enabled ?? false,
       isUserPlugin: false,
-      settings: { store: store as never },
+      settings: {
+        store: store as never,
+        persist: () => this.persist(),
+      },
     };
   }
 

@@ -23,5 +23,8 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "gemoji": "^8.1.0"
   }
 }

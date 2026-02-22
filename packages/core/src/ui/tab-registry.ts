@@ -10,6 +10,8 @@ export type BetterXContext = {
   notifications: NotificationManager;
   /** URL of the BetterX logo image — platform-supplied (betterx:// or chrome-extension://) */
   logoUrl: string;
+  /** Opens the themes folder in the system file manager (desktop only). */
+  openThemesFolder?: () => void;
 };
 
 export interface SettingsTab {

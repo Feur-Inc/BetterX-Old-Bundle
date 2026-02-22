@@ -15,7 +15,7 @@ export default defineConfig({
       fileName: "index",
     },
     rollupOptions: {
-      external: ["@betterx/core", "node-emoji", "codemirror"],
+      external: ["@betterx/core", "codemirror"],
     },
   },
 });

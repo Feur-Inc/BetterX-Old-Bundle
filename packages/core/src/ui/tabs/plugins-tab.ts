@@ -17,6 +17,8 @@ function renderOptions(container: HTMLElement, plugin: Plugin, ctx: BetterXConte
   optContainer.className = "betterx-plugin-options";
 
   for (const [key, opt] of Object.entries(plugin.options) as [string, PluginOptionDef][]) {
+    if (opt.hidden) continue;
+
     const row = document.createElement("div");
     row.className = "betterx-option";
 
@@ -84,6 +86,31 @@ function renderOptions(container: HTMLElement, plugin: Plugin, ctx: BetterXConte
         ctx.pluginManager.updateOption(plugin.name, key, Number(input.value)).catch(console.error);
       });
       control.appendChild(input);
+    } else if (opt.type === OptionType.COLOR) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "betterx-color-picker";
+      const colorInput = document.createElement("input");
+      colorInput.type = "color";
+      colorInput.className = "betterx-input-color";
+      colorInput.value = (currentValue as string) || "#1d9bf0";
+      const hexInput = document.createElement("input");
+      hexInput.type = "text";
+      hexInput.className = "betterx-input-text betterx-input-color-hex";
+      hexInput.value = (currentValue as string) || "#1d9bf0";
+      hexInput.maxLength = 7;
+      colorInput.addEventListener("input", () => {
+        hexInput.value = colorInput.value;
+        ctx.pluginManager.updateOption(plugin.name, key, colorInput.value).catch(console.error);
+      });
+      hexInput.addEventListener("change", () => {
+        const v = hexInput.value.trim();
+        if (/^#[0-9a-f]{6}$/i.test(v)) {
+          colorInput.value = v;
+          ctx.pluginManager.updateOption(plugin.name, key, v).catch(console.error);
+        }
+      });
+      wrapper.append(colorInput, hexInput);
+      control.appendChild(wrapper);
     }
 
     row.append(labelGroup, control);

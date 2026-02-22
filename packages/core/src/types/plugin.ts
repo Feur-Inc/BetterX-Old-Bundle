@@ -5,6 +5,7 @@ export const OptionType = {
   SELECT: "SELECT",
   STRING: "STRING",
   NUMBER: "NUMBER",
+  COLOR: "COLOR",
 } as const;
 
 export type OptionTypeKey = (typeof OptionType)[keyof typeof OptionType];
@@ -14,6 +15,7 @@ export type OptionValueMap = {
   SELECT: string;
   STRING: string;
   NUMBER: number;
+  COLOR: string;
 };
 
 export type SelectOption = { label: string; value: string };
@@ -23,6 +25,8 @@ export type PluginOptionDef<T extends OptionTypeKey = OptionTypeKey> = {
   default: OptionValueMap[T];
   label?: string;
   description?: string;
+  /** If true, the option is persisted but not shown in the settings UI. */
+  hidden?: boolean;
   options?: T extends "SELECT" ? SelectOption[] : never;
   onChange?: (newValue: OptionValueMap[T], oldValue: OptionValueMap[T]) => void;
 };
@@ -66,6 +70,8 @@ export type Plugin<O extends PluginOptionDefs = Record<string, never>> = PluginD
   unavailable?: boolean;
   settings: {
     store: InferredStore<O>;
+    /** Persist the current store to storage. */
+    persist(): Promise<void>;
   };
 };
 

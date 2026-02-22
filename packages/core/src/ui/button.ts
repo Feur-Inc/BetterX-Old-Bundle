@@ -1,6 +1,8 @@
 // ─── BetterX Nav Button ───────────────────────────────────────────────────────
 // Injects the BetterX button into X.com's navigation sidebar.
 
+import { BETTERX_LOGO_SVG } from "../utils/constants.js";
+
 type OnClickFn = () => void;
 
 const BUTTON_ID = "betterx-nav-btn";
@@ -51,10 +53,7 @@ function buildButton(onClick: OnClickFn, logoUrl: string): HTMLElement {
   btn.setAttribute("tabindex", "0");
   btn.setAttribute("aria-label", "BetterX");
   btn.setAttribute("title", "BetterX");
-  const iconHtml = logoUrl
-    ? `<img class="betterx-nav-icon" src="${logoUrl}" alt="BetterX" />`
-    : "";
-  btn.innerHTML = `${iconHtml}<span class="betterx-nav-label">BetterX</span>`;
+  btn.innerHTML = `<span class="betterx-nav-icon">${BETTERX_LOGO_SVG}</span><span class="betterx-nav-label">BetterX</span>`;
 
   btn.addEventListener("click", onClick);
   btn.addEventListener("keydown", (e) => {

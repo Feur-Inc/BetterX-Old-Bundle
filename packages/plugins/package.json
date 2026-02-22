@@ -1,6 +1,6 @@
 {
   "name": "@betterx/plugins",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@betterx/core": "*",
-    "node-emoji": "^1.11.0"
+    "gemoji": "^8.1.0"
   },
   "devDependencies": {
     "vite": "^6.0.0"

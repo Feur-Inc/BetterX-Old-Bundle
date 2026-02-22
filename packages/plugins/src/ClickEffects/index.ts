@@ -1,4 +1,4 @@
-import { definePlugin, Devs, OptionType, logger, detectAccentColor } from "@betterx/core";
+import { definePlugin, Devs, OptionType, logger } from "@betterx/core";
 
 class ClickEffect {
   private startTime = Date.now();
@@ -47,7 +47,6 @@ let effects: ClickEffect[] = [];
 let raf: number | null = null;
 let clickHandler: ((e: MouseEvent) => void) | null = null;
 let resizeHandler: (() => void) | null = null;
-let cachedAccentColor = "#1d9bf0";
 
 export default definePlugin({
   name: "ClickEffects",
@@ -61,10 +60,10 @@ export default definePlugin({
       description: "Use your X accent color instead of a custom color",
     },
     color: {
-      type: OptionType.STRING,
+      type: OptionType.COLOR,
       default: "#1d9bf0",
       label: "Custom color",
-      description: "Color of the click effect (hex, rgb, or rgba). Only used when accent color is off.",
+      description: "Only used when accent color is off.",
     },
   },
 
@@ -92,11 +91,12 @@ export default definePlugin({
       document.addEventListener("click", clickHandler);
 
       const store = this.settings.store;
-      detectAccentColor().then((c) => { cachedAccentColor = c; }).catch(() => {});
       const render = (): void => {
         if (!ctx || !canvas) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        const color = store.useAccentColor ? cachedAccentColor : store.color;
+        const color = store.useAccentColor
+          ? getComputedStyle(document.documentElement).getPropertyValue("--betterx-accentColor").trim() || "#1d9bf0"
+          : store.color;
         effects = effects.filter((fx: ClickEffect) => {
           if (fx.isDone()) return false;
           fx.draw(ctx!, color);

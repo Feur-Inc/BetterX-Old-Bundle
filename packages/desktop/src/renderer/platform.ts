@@ -13,6 +13,7 @@ type ElectronAPIThemes = {
   write(id: string, css: string): Promise<void>;
   delete(id: string): Promise<void>;
   onChanged(callback: (id: string, css: string) => void): () => void;
+  openFolder(): Promise<void>;
 };
 
 type ElectronAPISettings = {

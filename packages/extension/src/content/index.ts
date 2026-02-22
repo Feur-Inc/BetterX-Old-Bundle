@@ -50,7 +50,7 @@ async function init(): Promise<void> {
   // 7. Register built-in tabs
   // Fetch the icon from the extension and create a blob URL so the page DOM can
   // display it without web_accessible_resources / CSP issues.
-  const iconResp = await fetch(chrome.runtime.getURL("icons/icon128.png"));
+  const iconResp = await fetch(chrome.runtime.getURL("icons/icon.svg"));
   const logoUrl = URL.createObjectURL(await iconResp.blob());
   const ctx = { pluginManager, themeManager, notifications, logoUrl };
   TabRegistry.register(PluginsTab);

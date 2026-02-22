@@ -17,6 +17,7 @@ const api: ElectronAPI = {
       ipcRenderer.on("themes:changed", handler);
       return () => ipcRenderer.removeListener("themes:changed", handler);
     },
+    openFolder: () => ipcRenderer.invoke("themes:openFolder"),
   },
 
   settings: {

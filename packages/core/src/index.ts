@@ -32,6 +32,6 @@ export { AboutTab } from "./ui/tabs/about-tab.js";
 
 // Utils
 export { logger } from "./utils/logger.js";
-export { Devs, BETTERX_VERSION } from "./utils/constants.js";
+export { Devs, BETTERX_VERSION, BETTERX_LOGO_SVG } from "./utils/constants.js";
 export { waitForElement, createElement, injectStyle, removeStyle } from "./utils/dom.js";
 export { applyAccentColor as applyAccent, watchAccentColor as watchAccent } from "./utils/accent-color.js";

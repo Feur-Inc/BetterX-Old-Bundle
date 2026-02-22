@@ -2,6 +2,7 @@ import { definePlugin, Devs } from "@betterx/core";
 
 const SELECTORS = [
   'a[href="/i/grok"]',
+  'a[href*="grok.com/imagine"]',
   '[data-testid="GrokDrawer"]',
   'button[aria-label="Grok actions"]',
   'button[data-testid="grokImgGen"]',
