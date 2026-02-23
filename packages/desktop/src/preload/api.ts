@@ -36,6 +36,19 @@ export type ElectronAPI = {
   // App control
   restart(): void;
 
+  // OAuth
+  openOAuth(url: string): Promise<void>;
+  onOAuthComplete(callback: () => void): () => void;
+
+  // Cloud Sync proxy (bypasses CSP by routing through main process)
+  cloudLogout(serverUrl: string): Promise<void>;
+  cloudFetch(serverUrl: string, path: string, options?: { method?: string; body?: string }): Promise<{
+    ok: boolean;
+    status: number;
+    json: unknown;
+    text: string;
+  }>;
+
   // Discord RPC
   discordRPC: {
     updateActivity(details: string, state: string): void;

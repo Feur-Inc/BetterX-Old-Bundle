@@ -16,9 +16,15 @@
   ],
   "host_permissions": [
     "https://x.com/*",
-    "https://twitter.com/*"
+    "https://twitter.com/*",
+    "http://localhost:3000/*"
   ],
   "content_scripts": [
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": ["src/content/early-logo.ts"],
+      "run_at": "document_start"
+    },
     {
       "matches": ["https://x.com/*", "https://twitter.com/*"],
       "js": ["src/content/index.ts"],
@@ -38,5 +44,11 @@
   "action": {
     "default_popup": "src/popup/index.html",
     "default_title": "BetterX V3"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "betterx@feur.inc",
+      "strict_min_version": "128.0"
+    }
   }
 }

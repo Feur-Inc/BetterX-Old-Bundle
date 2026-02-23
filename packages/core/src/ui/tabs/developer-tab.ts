@@ -1,5 +1,6 @@
 import type { SettingsTab, BetterXContext } from "../tab-registry.js";
 import { logger } from "../../utils/logger.js";
+import { BETTERX_VERSION } from "../../utils/constants.js";
 
 // ─── Developer Tab ────────────────────────────────────────────────────────────
 

@@ -1,0 +1,19 @@
+{
+  "name": "@betterx/cloud-sync",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --hot src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@betterx/core": "*",
+    "hono": "^4.6.14",
+    "jose": "^5.9.6"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

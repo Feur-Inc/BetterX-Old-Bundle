@@ -27,6 +27,7 @@ export { BETTERX_STYLES } from "./ui/styles.js";
 // Built-in tabs
 export { PluginsTab } from "./ui/tabs/plugins-tab.js";
 export { ThemesTab } from "./ui/tabs/themes-tab.js";
+export { CloudTab } from "./ui/tabs/cloud-tab.js";
 export { DeveloperTab } from "./ui/tabs/developer-tab.js";
 export { AboutTab } from "./ui/tabs/about-tab.js";
 

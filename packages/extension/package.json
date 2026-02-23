@@ -4,8 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
-    "dev": "vite build --watch",
+    "build": "bun run build:chrome && bun run build:firefox",
+    "build:chrome": "BROWSER=chrome vite build",
+    "build:firefox": "BROWSER=firefox vite build",
+    "dev": "bun run dev:chrome",
+    "dev:chrome": "BROWSER=chrome vite build --watch",
+    "dev:firefox": "BROWSER=firefox vite build --watch",
+    "pack": "bun run pack:chrome && bun run pack:firefox",
+    "pack:chrome": "cd dist/chrome && zip -r ../betterx-chrome.zip .",
+    "pack:firefox": "web-ext build --source-dir dist/firefox --artifacts-dir dist --filename betterx-firefox.zip --overwrite-dest",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -14,7 +21,8 @@
     "webextension-polyfill": "^0.12.0"
   },
   "devDependencies": {
-    "@crxjs/vite-plugin": "^2.0.0-beta.28",
+    "vite-plugin-web-extension": "^4.0.0",
+    "web-ext": "^8.0.0",
     "@types/chrome": "^0.0.285",
     "@types/webextension-polyfill": "^0.10.7",
     "vite": "^6.0.0"

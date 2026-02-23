@@ -1,6 +1,7 @@
 // ─── BetterX Content Script ───────────────────────────────────────────────────
-// Runs in ISOLATED world — has chrome.* API access while still sharing the DOM.
+// Runs in ISOLATED world — has browser.* API access while still sharing the DOM.
 
+import browser from "webextension-polyfill";
 import {
   PluginManager,
   ThemeManager,
@@ -8,9 +9,11 @@ import {
   TabRegistry,
   PluginsTab,
   ThemesTab,
+  CloudTab,
   DeveloperTab,
   AboutTab,
   SettingsModal,
+  type BetterXContext,
   injectNavButton,
   watchNavButton,
   injectFooterBadge,
@@ -47,16 +50,22 @@ async function init(): Promise<void> {
   // 6. Apply accent color
   applyAccentColor();
 
-  // 7. Register built-in tabs
-  // Fetch the icon from the extension and create a blob URL so the page DOM can
-  // display it without web_accessible_resources / CSP issues.
-  const iconResp = await fetch(chrome.runtime.getURL("icons/icon.svg"));
-  const logoUrl = URL.createObjectURL(await iconResp.blob());
-  const ctx = { pluginManager, themeManager, notifications, logoUrl };
+  const logoUrl = browser.runtime.getURL("icons/icon.svg");
+
   TabRegistry.register(PluginsTab);
   TabRegistry.register(ThemesTab);
+  TabRegistry.register(CloudTab);
   TabRegistry.register(DeveloperTab);
   TabRegistry.register(AboutTab);
+
+  const ctx: BetterXContext = {
+    pluginManager,
+    themeManager,
+    notifications,
+    storage,
+    logoUrl,
+    platform: "extension",
+  };
 
   // 8. Create modal
   const modal = new SettingsModal(ctx);

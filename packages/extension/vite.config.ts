@@ -1,7 +1,8 @@
 import { defineConfig } from "vite";
-import { crx } from "@crxjs/vite-plugin";
+import webExtension from "vite-plugin-web-extension";
 import { resolve } from "path";
-import manifest from "./src/manifest.json";
+
+const browser = process.env.BROWSER ?? "chrome";
 
 export default defineConfig({
   resolve: {
@@ -11,10 +12,29 @@ export default defineConfig({
     },
   },
   plugins: [
-    crx({ manifest }),
+    webExtension({
+      manifest: "src/manifest.json",
+      browser,
+      transformManifest(manifest) {
+        const bg = manifest.background as Record<string, unknown> | undefined;
+        if (browser === "firefox" && bg?.service_worker) {
+          manifest.background = {
+            scripts: [bg.service_worker as string],
+            type: bg.type as string,
+          } as typeof manifest.background;
+        }
+        return manifest;
+      },
+    }),
   ],
   build: {
-    outDir: "dist",
+    outDir: `dist/${browser}`,
     emptyOutDir: true,
+    // Escape non-ASCII chars so Chrome's content script loader doesn't
+    // reject the files with "It isn't UTF-8 encoded".
+    cssTarget: "chrome120",
+  },
+  esbuild: {
+    charset: "ascii",
   },
 });

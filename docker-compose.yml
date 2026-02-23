@@ -1,0 +1,13 @@
+services:
+  cloud-sync:
+    build:
+      context: .
+      dockerfile: packages/cloud-sync/Dockerfile
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./data:/data
+    env_file:
+      - ./packages/cloud-sync/.env
+      - ./packages/cloud-sync/.env.local
+    restart: unless-stopped

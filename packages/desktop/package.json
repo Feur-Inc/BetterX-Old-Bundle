@@ -40,9 +40,14 @@
       "dist/**/*",
       "assets/**/*"
     ],
+    "protocols": {
+      "name": "BetterX",
+      "schemes": ["betterx"]
+    },
     "linux": {
       "target": ["AppImage", "deb"],
-      "category": "Network"
+      "category": "Network",
+      "mimeTypes": ["x-scheme-handler/betterx"]
     },
     "win": {
       "target": ["nsis"]

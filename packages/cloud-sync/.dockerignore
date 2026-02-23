@@ -1,0 +1,7 @@
+node_modules
+.git
+.claude
+dist
+*.db
+*.db-journal
+.env

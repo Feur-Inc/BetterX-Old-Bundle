@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, session } from "electron";
 import { join, dirname, basename } from "path";
 import { fileURLToPath } from "url";
 import { existsSync, watch } from "fs";
@@ -33,7 +33,8 @@ import {
 
 // ─── App Paths ────────────────────────────────────────────────────────────────
 
-const BETTERX_DIR = join(app.getPath("userData"), "BetterX");
+import { BETTERX_DIR } from "./paths.js";
+
 // Default to the locally-built bundle; overridden by userData path once a remote update is applied
 const BUNDLE_PATH = join(__dirname, "../bundle/bundle.iife.js");
 // Where remote bundle updates are saved (userData, persists across app updates)
@@ -62,7 +63,37 @@ if (!gotLock) {
 // Register protocol BEFORE app is ready
 registerBetterxProtocol();
 
+// Register betterx:// as OS-level deep link protocol so x.com links can open in BetterX
+// Usage: betterx://x.com/user/status/123 → navigates to https://x.com/user/status/123
+app.setAsDefaultProtocolClient("betterx");
+
+/**
+ * Handle a deep link URL like betterx://x.com/path or betterx://twitter.com/path.
+ * Converts to https:// and navigates the main window.
+ */
+function handleDeepLink(url: string): void {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname;
+    // Only handle x.com / twitter.com deep links
+    if (host === "x.com" || host === "twitter.com") {
+      const target = `https://${host}${parsed.pathname}${parsed.search}${parsed.hash}`;
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.loadURL(target);
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
+      }
+      logger.info(`[BetterX] Deep link: ${target}`);
+    }
+  } catch {
+    logger.warn("[BetterX] Invalid deep link URL:", url);
+  }
+}
+
 // ─── App Ready ────────────────────────────────────────────────────────────────
+
+// Check if the app was launched with a deep link URL (cold start)
+const launchDeepLink = process.argv.find((arg) => arg.startsWith("betterx://"));
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -110,6 +141,87 @@ app.whenReady().then(async () => {
     app.exit(0);
   });
 
+  ipcMain.handle("bx:oauth:open", async (_event, url: string) => {
+    const oauthWindow = new BrowserWindow({
+      width: 600,
+      height: 800,
+      show: true,
+      autoHideMenuBar: true,
+      parent: mainWindow || undefined,
+      modal: true,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+      },
+    });
+
+    await oauthWindow.loadURL(url);
+
+    // Auto-close the modal when the OAuth callback completes
+    // The server returns a page with window.close(), but as a fallback
+    // we also detect navigation to the callback/success page
+    oauthWindow.webContents.on("did-navigate", (_e, navUrl) => {
+      try {
+        const parsed = new URL(navUrl);
+        // Close if we landed back on the server root or callback (auth completed)
+        if (parsed.pathname === "/" || parsed.pathname === "/auth/callback") {
+          setTimeout(() => {
+            if (!oauthWindow.isDestroyed()) oauthWindow.close();
+          }, 500);
+        }
+      } catch { /* ignore invalid URLs */ }
+    });
+
+    return new Promise<void>((resolve) => {
+      oauthWindow.on("closed", () => {
+        // Notify the renderer to refresh cloud sync status
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("bx:oauth:complete");
+        }
+        resolve();
+      });
+    });
+  });
+
+  // ─── Cloud Sync API Proxy ────────────────────────────────────────────────────
+  // The renderer runs on https://x.com so it can't fetch localhost due to CSP.
+  // We proxy cloud sync API calls through the main process instead.
+
+  async function getCloudCookie(serverUrl: string): Promise<string> {
+    const url = new URL(serverUrl);
+    const cookies = await session.defaultSession.cookies.get({
+      domain: url.hostname,
+      name: "bx_session",
+    });
+    return cookies.length ? `bx_session=${cookies[0].value}` : "";
+  }
+
+  ipcMain.handle("bx:cloud:logout", async (_event, serverUrl: string) => {
+    const url = new URL(serverUrl);
+    await session.defaultSession.cookies.remove(`${url.origin}`, "bx_session");
+  });
+
+  ipcMain.handle("bx:cloud:fetch", async (_event, serverUrl: string, path: string, options?: { method?: string; body?: string }) => {
+    try {
+      const cookie = await getCloudCookie(serverUrl);
+      const headers: Record<string, string> = {};
+      if (cookie) headers["Cookie"] = cookie;
+      if (options?.body) headers["Content-Type"] = "application/json";
+      const res = await fetch(`${serverUrl}${path}`, {
+        method: options?.method ?? "GET",
+        headers,
+        body: options?.body ?? null,
+        redirect: "manual",
+      });
+      const text = await res.text();
+      let json: unknown = null;
+      try { json = JSON.parse(text); } catch { /* not JSON */ }
+      return { ok: res.ok, status: res.status, json, text };
+    } catch {
+      return { ok: false, status: 0, json: null, text: "Connection failed" };
+    }
+  });
+
   // Create main window
   const preloadPath = join(__dirname, "../preload/preload.js");
   const enableTransparency = getSetting("enableTransparency");
@@ -126,6 +238,11 @@ app.whenReady().then(async () => {
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
+
+  // If launched via deep link, navigate to the target URL
+  if (launchDeepLink) {
+    handleDeepLink(launchDeepLink);
+  }
 
   // Start minimized?
   if (getSetting("startMinimized")) {
@@ -166,12 +283,22 @@ app.whenReady().then(async () => {
   }
 });
 
-// Focus existing window on second instance
-app.on("second-instance", () => {
-  if (mainWindow) {
+// Focus existing window on second instance; handle deep link URLs (Linux/Windows)
+app.on("second-instance", (_event, argv) => {
+  // On Linux/Windows, the deep link URL is passed as the last CLI argument
+  const deepLink = argv.find((arg) => arg.startsWith("betterx://"));
+  if (deepLink) {
+    handleDeepLink(deepLink);
+  } else if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.focus();
   }
+});
+
+// Handle deep link URLs on macOS
+app.on("open-url", (event, url) => {
+  event.preventDefault();
+  handleDeepLink(url);
 });
 
 app.on("before-quit", () => {

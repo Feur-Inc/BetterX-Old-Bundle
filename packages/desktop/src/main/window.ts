@@ -123,8 +123,16 @@ export function createMainWindow(preloadPath: string, enableTransparency: boolea
       .catch((err) => logger.error("Failed to inject BetterX script:", err));
   });
 
-  // Prevent navigation to external URLs
+  // Allow OAuth popups to open inside the app so postMessage works back to the opener
   win.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      const { hostname } = new URL(url);
+      if (hostname === "accounts.google.com" || hostname.endsWith(".google.com") && hostname.includes("accounts")) {
+        return { action: "allow" };
+      }
+    } catch {
+      // Malformed URL — fall through to open externally
+    }
     void shell.openExternal(url);
     return { action: "deny" };
   });

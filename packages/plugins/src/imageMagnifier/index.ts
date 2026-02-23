@@ -11,6 +11,7 @@ let magOnMouseMove: ((e: MouseEvent) => void) | null = null;
 let magOnMouseDown: ((e: MouseEvent) => void) | null = null;
 let magOnMouseUp: (() => void) | null = null;
 let magOnWheel: ((e: WheelEvent) => void) | null = null;
+let magPersistTimer: ReturnType<typeof setTimeout> | null = null;
 
 function updateMagnifier(e: MouseEvent): void {
   if (!magIsActive || !magEl || !magCurrentImg) return;
@@ -79,18 +80,23 @@ export default definePlugin({
       magCurrentImg = null;
       if (magEl) magEl.style.display = "none";
     };
+    const settings = this.settings;
     magOnWheel = (e: WheelEvent): void => {
       if (!magIsActive) return;
       e.preventDefault();
       if (e.shiftKey) {
         magSize = Math.min(400, Math.max(50, magSize - e.deltaY));
+        settings.store.magnifierSize = magSize;
         if (magEl) {
           magEl.style.width = `${magSize}px`;
           magEl.style.height = `${magSize}px`;
         }
       } else {
         magZoom = Math.min(6, Math.max(1, magZoom - e.deltaY * 0.01));
+        settings.store.defaultZoom = magZoom;
       }
+      if (magPersistTimer) clearTimeout(magPersistTimer);
+      magPersistTimer = setTimeout(() => settings.persist(), 300);
     };
 
     document.addEventListener("mousedown", magOnMouseDown);
@@ -121,5 +127,7 @@ export default definePlugin({
     magOnMouseDown = null;
     magOnMouseUp = null;
     magOnWheel = null;
+    if (magPersistTimer) clearTimeout(magPersistTimer);
+    magPersistTimer = null;
   },
 });

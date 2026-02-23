@@ -45,5 +45,12 @@ export default definePlugin({
   stop() {
     observer?.disconnect();
     observer = null;
+    for (const selector of SELECTORS) {
+      document.querySelectorAll<HTMLElement>(selector).forEach((el) => {
+        el.style.removeProperty("display");
+        el.style.removeProperty("width");
+        el.style.removeProperty("height");
+      });
+    }
   },
 });

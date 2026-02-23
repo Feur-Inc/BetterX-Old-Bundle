@@ -38,6 +38,12 @@ declare global {
       captureElement?(rect: { x: number; y: number; width: number; height: number }): Promise<string>;
       getVersion?(): string;
       restart?(): void;
+      openOAuth(url: string): Promise<void>;
+      onOAuthComplete(callback: () => void): () => void;
+      cloudLogout(serverUrl: string): Promise<void>;
+      cloudFetch(serverUrl: string, path: string, options?: { method?: string; body?: string }): Promise<{
+        ok: boolean; status: number; json: unknown; text: string;
+      }>;
       discordRPC?: {
         updateActivity(details: string, state: string): void;
       };

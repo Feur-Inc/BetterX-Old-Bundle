@@ -1,11 +1,9 @@
 import { ipcMain, BrowserWindow, shell } from "electron";
 import { join } from "path";
 import { mkdir, readdir, readFile, writeFile, unlink } from "fs/promises";
-import { app } from "electron";
+import { THEMES_DIR } from "../paths.js";
 
 // ─── Theme IPC Handlers ───────────────────────────────────────────────────────
-
-const THEMES_DIR = join(app.getPath("userData"), "Themes");
 
 async function ensureThemesDir(): Promise<void> {
   await mkdir(THEMES_DIR, { recursive: true });
@@ -50,6 +48,6 @@ export function registerThemeHandlers(): void {
 
   ipcMain.handle("themes:openFolder", async () => {
     await ensureThemesDir();
-    await shell.openPath(THEMES_DIR);
+    void shell.openExternal(`file://${THEMES_DIR}`);
   });
 }

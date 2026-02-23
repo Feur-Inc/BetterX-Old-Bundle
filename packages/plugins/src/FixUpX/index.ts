@@ -25,7 +25,7 @@ export default definePlugin({
   },
 
   start() {
-    const domain = this.settings.store.domain;
+    const settings = this.settings;
     fixupxHandler = (e: ClipboardEvent) => {
       if (!e.clipboardData) return;
       setTimeout(() => {
@@ -37,7 +37,7 @@ export default definePlugin({
               (url.hostname === "x.com" || url.hostname === "twitter.com") &&
               url.pathname.includes("/status/")
             ) {
-              url.hostname = domain;
+              url.hostname = settings.store.domain;
               const transformed = url.toString();
               const now = Date.now();
               if (fixupxLastUrl === transformed && now - fixupxLastTime < 1000) return;

@@ -244,13 +244,15 @@ export const PluginsTab: SettingsTab = {
     const viewToggle = document.createElement("div");
     viewToggle.className = "betterx-view-toggle";
 
+    const isGrid = localStorage.getItem("betterx_plugins_view") === "grid";
+
     const listBtn = document.createElement("button");
-    listBtn.className = "betterx-view-btn betterx-view-btn-active";
+    listBtn.className = `betterx-view-btn${isGrid ? "" : " betterx-view-btn-active"}`;
     listBtn.title = "List view";
     listBtn.innerHTML = `<svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16"><rect x="0" y="1" width="16" height="2.5" rx="1"/><rect x="0" y="6.75" width="16" height="2.5" rx="1"/><rect x="0" y="12.5" width="16" height="2.5" rx="1"/></svg>`;
 
     const gridBtn = document.createElement("button");
-    gridBtn.className = "betterx-view-btn";
+    gridBtn.className = `betterx-view-btn${isGrid ? " betterx-view-btn-active" : ""}`;
     gridBtn.title = "Grid view";
     gridBtn.innerHTML = `<svg viewBox="0 0 16 16" fill="currentColor" width="16" height="16"><rect x="0" y="0" width="7" height="7" rx="1"/><rect x="9" y="0" width="7" height="7" rx="1"/><rect x="0" y="9" width="7" height="7" rx="1"/><rect x="9" y="9" width="7" height="7" rx="1"/></svg>`;
 
@@ -258,7 +260,7 @@ export const PluginsTab: SettingsTab = {
     toolbar.append(search, viewToggle);
 
     const list = document.createElement("div");
-    list.className = "betterx-plugin-list";
+    list.className = `betterx-plugin-list${isGrid ? " betterx-grid-view" : ""}`;
 
     const plugins = ctx.pluginManager.getAll();
     const items = plugins.map((p) => ({ plugin: p, el: renderPlugin(p, ctx) }));
@@ -268,12 +270,14 @@ export const PluginsTab: SettingsTab = {
       list.classList.remove("betterx-grid-view");
       listBtn.classList.add("betterx-view-btn-active");
       gridBtn.classList.remove("betterx-view-btn-active");
+      localStorage.setItem("betterx_plugins_view", "list");
     });
 
     gridBtn.addEventListener("click", () => {
       list.classList.add("betterx-grid-view");
       gridBtn.classList.add("betterx-view-btn-active");
       listBtn.classList.remove("betterx-view-btn-active");
+      localStorage.setItem("betterx_plugins_view", "grid");
     });
 
     search.addEventListener("input", () => {

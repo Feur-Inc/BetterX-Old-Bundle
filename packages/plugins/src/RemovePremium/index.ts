@@ -68,5 +68,29 @@ export default definePlugin({
   stop() {
     observer?.disconnect();
     observer = null;
+    for (const selector of SELECTORS) {
+      document.querySelectorAll<HTMLElement>(selector).forEach((el) => {
+        const parent = el.closest<HTMLElement>(".r-1ifxtd0");
+        const target = parent ?? el;
+        target.style.removeProperty("display");
+        target.style.removeProperty("width");
+        target.style.removeProperty("height");
+      });
+    }
+    document.querySelectorAll<HTMLElement>(".r-1ifxtd0").forEach((el) => {
+      if (el.textContent?.includes("Access your post analytics")) {
+        el.style.removeProperty("display");
+        el.style.removeProperty("width");
+        el.style.removeProperty("height");
+      }
+    });
+    document.querySelectorAll<HTMLElement>('[role="complementary"].r-eqz5dr').forEach((el) => {
+      if (!el.querySelector("ul")) {
+        const target = el.parentElement ?? el;
+        target.style.removeProperty("display");
+        target.style.removeProperty("width");
+        target.style.removeProperty("height");
+      }
+    });
   },
 });

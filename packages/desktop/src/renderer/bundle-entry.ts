@@ -9,9 +9,11 @@ import {
   TabRegistry,
   PluginsTab,
   ThemesTab,
+  CloudTab,
   DeveloperTab,
   AboutTab,
   SettingsModal,
+  type BetterXContext,
   injectNavButton,
   watchNavButton,
   injectFooterBadge,
@@ -55,15 +57,23 @@ async function init(): Promise<void> {
 
   // 7. Register tabs
   const logoUrl = "betterx://assets/icon.svg";
-  const ctx = {
+  const ctx: BetterXContext = {
     pluginManager,
     themeManager,
     notifications,
+    storage,
     logoUrl,
+    platform: "desktop",
     openThemesFolder: () => { window.electronAPI?.themes.openFolder(); },
+    openOAuth: (url: string) => window.electronAPI!.openOAuth(url),
+    onOAuthComplete: (cb: () => void) => window.electronAPI!.onOAuthComplete(cb),
+    cloudLogout: (serverUrl: string) => window.electronAPI!.cloudLogout(serverUrl),
+    cloudFetch: (serverUrl: string, path: string, options?: { method?: string; body?: string }) =>
+      window.electronAPI!.cloudFetch(serverUrl, path, options),
   };
   TabRegistry.register(PluginsTab);
   TabRegistry.register(ThemesTab);
+  TabRegistry.register(CloudTab);
   TabRegistry.register(DesktopTab);
   TabRegistry.register(DeveloperTab);
   TabRegistry.register(AboutTab);

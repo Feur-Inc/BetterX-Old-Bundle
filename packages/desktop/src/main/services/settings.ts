@@ -1,4 +1,5 @@
 import Store from "electron-store";
+import { BETTERX_DIR } from "../paths.js";
 
 // ─── Settings Service ─────────────────────────────────────────────────────────
 
@@ -25,7 +26,8 @@ const DEFAULT_SETTINGS: DesktopSettings = {
 };
 
 export const settingsStore = new Store<DesktopSettings>({
-  name: "desktop-settings",
+  name: "desktop.settings",
+  cwd: BETTERX_DIR,
   defaults: DEFAULT_SETTINGS,
 });
 

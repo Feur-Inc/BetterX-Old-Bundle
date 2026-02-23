@@ -74,12 +74,8 @@ function buildCSS(color: string): string {
   background-color: rgba(${r}, ${g}, ${b}, 0.2) !important;
 }
 
-/* Accent text color */
-.r-1nao33i[style*="color"],
-.r-1cvl2hr,
-.r-vkub15,
-.r-9l7dzd,
-.r-o6sn0f {
+/* Accent text color (bell icon on notifications) */
+.r-1cvl2hr {
   color: ${color} !important;
 }
 
@@ -114,8 +110,13 @@ ${inlineStrokeSelectors} {
   border-color: ${color} !important;
 }
 
-/* Notification dot, checkmark circle, accent indicators */
-.r-4nw3r4:not([data-testid="videoComponent"] *) {
+/* Notification unread dot */
+[aria-label*="unread"].r-4nw3r4 {
+  background-color: ${color} !important;
+}
+
+/* Checkmark accent circle */
+.r-4nw3r4.r-b5kvu3 {
   background-color: ${color} !important;
 }
 

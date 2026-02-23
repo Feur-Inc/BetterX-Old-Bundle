@@ -13,6 +13,7 @@ import { logger } from "../utils/logger.js";
 export class PluginManager {
   private plugins = new Map<string, Plugin>();
   private storage: IStorage;
+  private initialized = false;
 
   constructor(storage: IStorage) {
     this.storage = storage;
@@ -39,7 +40,13 @@ export class PluginManager {
       }
 
       this.plugins.set(def.name, plugin);
+    }
 
+    this.initialized = true;
+
+    // Start enabled plugins only after all are hydrated, so a failing
+    // start() can never persist a partial plugin map.
+    for (const plugin of this.plugins.values()) {
       if (plugin.enabled) {
         this.safeCall(plugin, "start");
       }
@@ -70,6 +77,10 @@ export class PluginManager {
         persist: () => this.persist(),
       },
     };
+  }
+
+  getStorage(): IStorage {
+    return this.storage;
   }
 
   getAll(): Plugin[] {
@@ -132,9 +143,10 @@ export class PluginManager {
   }
 
   private async persist(): Promise<void> {
+    if (!this.initialized) return;
+
     const states: Record<string, PluginStorageData> = {};
     for (const [name, plugin] of this.plugins) {
-      if (plugin.unavailable) continue;
       states[name] = {
         enabled: plugin.enabled,
         settings: { ...(plugin.settings.store as Record<string, unknown>) },

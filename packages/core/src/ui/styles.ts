@@ -199,11 +199,17 @@ export const BETTERX_STYLES = `
 /* === Grid View === */
 .betterx-plugin-list.betterx-grid-view {
   display: grid !important;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 8px;
 }
 .betterx-grid-view .betterx-plugin-item {
   margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+.betterx-grid-view .betterx-plugin-header {
+  flex: 1;
+  align-items: flex-start;
 }
 .betterx-grid-view .betterx-plugin-description {
   white-space: normal;
@@ -272,6 +278,105 @@ export const BETTERX_STYLES = `
 .betterx-plugin-body {
   padding: 0 16px 14px;
   border-top: 1px solid var(--betterx-borderColor);
+}
+
+/* === Cloud Sync Tab === */
+.betterx-cloud-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.betterx-cloud-header h2 {
+  margin: 0 0 8px 0;
+  color: var(--betterx-textColor);
+  font-size: 20px;
+}
+.betterx-cloud-header p {
+  margin: 0;
+  color: var(--betterx-textColorSecondary);
+  font-size: 14px;
+}
+.betterx-cloud-status-card {
+  background: var(--betterx-contentBg);
+  border: 1px solid var(--betterx-borderColor);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.betterx-status-label {
+  color: var(--betterx-textColorSecondary);
+  margin-right: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.betterx-status-value {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--betterx-textColor);
+}
+.betterx-cloud-actions {
+  display: flex;
+  gap: 12px;
+}
+.betterx-sync-buttons {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0;
+}
+.betterx-button {
+  background: var(--betterx-switchBg);
+  color: var(--betterx-textColor);
+  border: 1px solid var(--betterx-borderColor);
+  padding: 8px 20px;
+  border-radius: 9999px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s, opacity 0.2s;
+}
+.betterx-button:hover:not(:disabled) {
+  background: var(--betterx-hoverBg);
+}
+.betterx-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.betterx-button-primary {
+  background: var(--betterx-accentColor);
+  border-color: transparent;
+  color: white;
+}
+.betterx-button-primary:hover:not(:disabled) {
+  background: var(--betterx-accentColor);
+  filter: brightness(1.1);
+}
+.betterx-button-danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--betterx-danger);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+.betterx-button-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+}
+.betterx-help-text {
+  color: var(--betterx-textColorSecondary);
+  font-size: 12px;
+  margin: 0;
+  line-height: 1.4;
+}
+.card {
+  background: var(--betterx-contentBg);
+  border: 1px solid var(--betterx-borderColor);
+  border-radius: 12px;
+  padding: 20px;
+}
+.card h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  color: var(--betterx-textColor);
+  font-weight: 700;
 }
 
 .betterx-plugin-authors {
@@ -795,6 +900,9 @@ export const BETTERX_STYLES = `
   gap: 16px;
 }
 .betterx-tab-panel[data-tab-id="about"] {
+  overflow-y: hidden;
+}
+.betterx-modal-body:has(.betterx-tab-panel[data-tab-id="about"]:not([style*="none"])) {
   overflow-y: hidden;
 }
 

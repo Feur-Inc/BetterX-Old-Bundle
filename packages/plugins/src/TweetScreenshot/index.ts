@@ -94,6 +94,7 @@ export default definePlugin({
   name: "TweetScreenshot",
   description: "Adds a screenshot button to tweets that copies the tweet as an image",
   authors: [Devs.TPM28],
+  platform: "desktop",
 
   start() {
     const pending = new Set<HTMLElement>();
