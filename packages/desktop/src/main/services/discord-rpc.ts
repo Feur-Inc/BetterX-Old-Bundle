@@ -60,8 +60,8 @@ async function setActivity(details: string, state: string): Promise<void> {
   if (!client || !connected) return;
   try {
     await client.user?.setActivity({
-      details: details || undefined,
-      state: state || undefined,
+      ...(details ? { details } : {}),
+      ...(state ? { state } : {}),
       largeImageKey: ASSET_KEY,
       largeImageText: "BetterX",
       startTimestamp: Date.now(),

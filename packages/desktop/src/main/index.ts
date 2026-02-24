@@ -147,7 +147,7 @@ app.whenReady().then(async () => {
       height: 800,
       show: true,
       autoHideMenuBar: true,
-      parent: mainWindow || undefined,
+      ...(mainWindow ? { parent: mainWindow } : {}),
       modal: true,
       webPreferences: {
         nodeIntegration: false,
@@ -193,7 +193,7 @@ app.whenReady().then(async () => {
       domain: url.hostname,
       name: "bx_session",
     });
-    return cookies.length ? `bx_session=${cookies[0].value}` : "";
+    return cookies[0]?.value ? `bx_session=${cookies[0].value}` : "";
   }
 
   ipcMain.handle("bx:cloud:logout", async (_event, serverUrl: string) => {
@@ -245,7 +245,7 @@ app.whenReady().then(async () => {
   }
 
   // Start minimized?
-  if (getSetting("startMinimized")) {
+  if (getSetting("startMinimized") && mainWindow) {
     mainWindow.minimize();
   }
 
