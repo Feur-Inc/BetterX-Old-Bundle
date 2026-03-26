@@ -16,14 +16,15 @@ const JWT_SECRET = new TextEncoder().encode(process.env.SESSION_SECRET || "defau
 // ─── Middleware for Auth ─────────────────────────────────────────────────────
 const authMiddleware = async (c: any, next: any) => {
   const token = getCookie(c, "bx_session");
-  if (!token) return c.redirect("/auth/twitter");
-  
+  const isApi = c.req.path.startsWith("/api/");
+  if (!token) return isApi ? c.json({ error: "Unauthorized" }, 401) : c.redirect("/auth/twitter");
+
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     c.set("user", payload);
     await next();
   } catch (e) {
-    return c.redirect("/auth/twitter");
+    return isApi ? c.json({ error: "Unauthorized" }, 401) : c.redirect("/auth/twitter");
   }
 };
 
