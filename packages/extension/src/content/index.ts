@@ -16,19 +16,25 @@ import {
   type BetterXContext,
   injectNavButton,
   watchNavButton,
-  injectFooterBadge,
   applyAccentColor,
   injectStyle,
+  setImageProxy,
+  setFetchProxy,
+  type ProxyFetchInit,
 } from "@betterx/core";
 import { BETTERX_STYLES } from "@betterx/core";
 import { allPlugins } from "@betterx/plugins";
 import { ExtensionStorage } from "../background/storage.js";
+import { registerMainWorldBridge } from "./bridge.js";
 
 let initialized = false;
 
 async function init(): Promise<void> {
   if (initialized) return;
   initialized = true;
+
+  // 0. Wire up main-world bridge (must be early so plugins can use it)
+  registerMainWorldBridge();
 
   // 1. Inject base styles
   injectStyle(BETTERX_STYLES, "betterx-styles");
@@ -52,6 +58,25 @@ async function init(): Promise<void> {
 
   const logoUrl = browser.runtime.getURL("icons/icon.svg");
 
+  // 7. Register image proxy so plugins can bypass X's CSP
+  const proxyImageFn = async (url: string): Promise<string> => {
+    try {
+      const res = await browser.runtime.sendMessage({ type: "PROXY_IMAGE", url }) as { dataUrl?: string };
+      return res?.dataUrl ?? url;
+    } catch {
+      return url;
+    }
+  };
+  setImageProxy(proxyImageFn);
+  setFetchProxy(async (url: string, init?: ProxyFetchInit) => {
+    try {
+      return await browser.runtime.sendMessage({ type: "PROXY_FETCH", url, ...init }) as
+        { ok: boolean; status: number; text: string; json: unknown };
+    } catch {
+      return { ok: false, status: 0, text: "Extension messaging failed", json: null };
+    }
+  });
+
   TabRegistry.register(PluginsTab);
   TabRegistry.register(ThemesTab);
   TabRegistry.register(CloudTab);
@@ -65,6 +90,7 @@ async function init(): Promise<void> {
     storage,
     logoUrl,
     platform: "extension",
+    proxyImage: proxyImageFn,
   };
 
   // 8. Create modal
@@ -74,9 +100,6 @@ async function init(): Promise<void> {
   const openModal = (): void => modal.toggle();
   injectNavButton(openModal, logoUrl);
   watchNavButton(openModal, logoUrl);
-
-  // 10. Inject footer badge
-  injectFooterBadge(openModal);
 
   console.log("[BetterX] Initialized ✓");
 }

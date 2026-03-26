@@ -20,12 +20,8 @@ export type BetterXContext = {
   openOAuth?: (url: string) => Promise<void>;
   /** Register a callback for when OAuth login completes (desktop only). */
   onOAuthComplete?: (callback: () => void) => () => void;
-  /** Clear cloud session cookie (desktop only). */
-  cloudLogout?: (serverUrl: string) => Promise<void>;
-  /** Proxy fetch through main process to bypass CSP (desktop only). */
-  cloudFetch?: (serverUrl: string, path: string, options?: { method?: string; body?: string }) => Promise<{
-    ok: boolean; status: number; json: unknown; text: string;
-  }>;
+  /** Proxy an image URL through the platform to bypass page CSP. */
+  proxyImage?: (url: string) => Promise<string>;
 };
 
 export interface SettingsTab {

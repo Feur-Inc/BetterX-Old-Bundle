@@ -194,12 +194,19 @@ function renderPlugin(plugin: Plugin, ctx: BetterXContext): HTMLElement {
         badge.rel = "noopener noreferrer";
         badge.innerHTML = `
           <img class="betterx-author-avatar"
-               src="https://unavatar.io/twitter/${escHtml(author.handle)}"
                alt="${escHtml(author.name)}">
           @${escHtml(author.handle)}
         `;
         const avatar = badge.querySelector<HTMLImageElement>("img");
-        if (avatar) avatar.addEventListener("error", () => { avatar.style.display = "none"; });
+        if (avatar) {
+          avatar.addEventListener("error", () => { avatar.style.display = "none"; });
+          const url = `https://unavatar.io/twitter/${author.handle}`;
+          if (ctx.proxyImage) {
+            ctx.proxyImage(url).then((src) => { avatar.src = src; }).catch(() => { avatar.src = url; });
+          } else {
+            avatar.src = url;
+          }
+        }
         authors.appendChild(badge);
       }
       body.appendChild(authors);

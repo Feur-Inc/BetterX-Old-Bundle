@@ -27,7 +27,7 @@ export const AboutTab: SettingsTab = {
            target="_blank"
            rel="noopener noreferrer">
           <img class="betterx-author-avatar"
-               src="https://unavatar.io/twitter/${escHtml(dev.handle)}"
+               data-proxy-src="https://unavatar.io/twitter/${escHtml(dev.handle)}"
                alt="${escHtml(dev.name)}"
                data-fallback="1">
           <div>
@@ -65,9 +65,15 @@ export const AboutTab: SettingsTab = {
     `;
     container.innerHTML = html;
 
-    // Attach error handlers after setting innerHTML (inline onerror blocked by CSP)
-    container.querySelectorAll<HTMLImageElement>("img[data-fallback]").forEach((img) => {
+    // Proxy avatar images through background to bypass page CSP, then set src
+    container.querySelectorAll<HTMLImageElement>("img[data-proxy-src]").forEach((img) => {
       img.addEventListener("error", () => { img.style.display = "none"; });
+      const url = img.dataset.proxySrc!;
+      if (ctx.proxyImage) {
+        ctx.proxyImage(url).then((src) => { img.src = src; }).catch(() => { img.src = url; });
+      } else {
+        img.src = url;
+      }
     });
   },
 };

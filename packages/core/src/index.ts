@@ -21,7 +21,6 @@ export type { SettingsTab, BetterXContext } from "./ui/tab-registry.js";
 export { SettingsModal } from "./ui/modal.js";
 export { NotificationManager, notifications } from "./ui/notification.js";
 export { injectNavButton, removeNavButton, ensureNavButton, watchNavButton } from "./ui/button.js";
-export { injectFooterBadge, removeFooterBadge, watchFooterBadge } from "./ui/footer.js";
 export { BETTERX_STYLES } from "./ui/styles.js";
 
 // Built-in tabs
@@ -36,3 +35,6 @@ export { logger } from "./utils/logger.js";
 export { Devs, BETTERX_VERSION, BETTERX_LOGO_SVG } from "./utils/constants.js";
 export { waitForElement, createElement, injectStyle, removeStyle } from "./utils/dom.js";
 export { applyAccentColor as applyAccent, watchAccentColor as watchAccent } from "./utils/accent-color.js";
+export { setImageProxy, proxyImage, setFetchProxy, proxyFetch } from "./utils/proxy.js";
+export type { ProxyFetchResult, ProxyFetchInit } from "./utils/proxy.js";
+export { setMainWorldBridge, callMainWorld, dispatchReactState } from "./utils/main-world-bridge.js";

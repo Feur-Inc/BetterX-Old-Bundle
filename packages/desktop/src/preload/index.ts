@@ -1,6 +1,284 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { ElectronAPI } from "./api.js";
 
+// ─── Sensitive-media patch injection ─────────────────────────────────────────
+// contextIsolation:true means we can't patch window.JSON.parse directly.
+// Injecting an inline <script> into document bypasses that — scripts appended
+// to the DOM execute in the page's main world context, not the preload context.
+// This mirrors the extension's main-world.ts but for Electron.
+
+// Mirrors the logic in extension/src/content/main-world.ts but runs as an
+// injected inline script since the preload context is isolated from the page.
+const SENSITIVE_MEDIA_PATCH = `(function () {
+  var enabled = localStorage.getItem('betterx:sensitiveMedia') !== '0';
+  if (!enabled) return;
+
+  var blurMode = localStorage.getItem('betterx:sensitiveMedia:blur') === '1';
+
+  // In blur mode: track which tweet IDs were sensitive so we can stamp
+  // articles with [data-betterx-sensitive] for CSS to blur.
+  var sensitiveIds = new Set();
+
+  function strip(o) {
+    if (!o || typeof o !== 'object') return;
+    if (Array.isArray(o)) { o.forEach(strip); return; }
+
+    // Collect sensitive IDs before stripping (blur mode only).
+    if (blurMode) {
+      if (o.__typename === 'TweetWithVisibilityResults' && o.tweet && typeof o.tweet === 'object') {
+        if (typeof o.tweet.rest_id === 'string') sensitiveIds.add(o.tweet.rest_id);
+      }
+      // possibly_sensitive lives in legacy sub-object; rest_id is at tweet root.
+      if (typeof o.rest_id === 'string' && o.legacy && typeof o.legacy === 'object' && o.legacy.possibly_sensitive === true) {
+        sensitiveIds.add(o.rest_id);
+      }
+    }
+
+    // Unwrap TweetWithVisibilityResults → Tweet.
+    if (o.__typename === 'TweetWithVisibilityResults' && o.mediaVisibilityResults && o.tweet && typeof o.tweet === 'object') {
+      var inner = o.tweet;
+      Object.keys(inner).forEach(function (k) { o[k] = inner[k]; });
+      o.__typename = 'Tweet';
+      delete o.tweet; delete o.mediaVisibilityResults; delete o.limitedActionResults;
+    }
+
+    if ('possibly_sensitive'          in o) o.possibly_sensitive          = false;
+    if ('possibly_sensitive_editable' in o) o.possibly_sensitive_editable = false;
+    if ('sensitive_media_warning'     in o) delete o.sensitive_media_warning;
+    if ('mediaVisibilityResults'      in o) delete o.mediaVisibilityResults;
+    if ('interstitial'                in o) delete o.interstitial;
+    if ('age_restriction'             in o) delete o.age_restriction;
+
+    Object.values(o).forEach(strip);
+  }
+
+  // Patch JSON.parse (catches SSR-embedded data and manually-parsed responses).
+  var _parse = JSON.parse.bind(JSON);
+  JSON.parse = function (text, reviver) {
+    var result = _parse(text, reviver);
+    if (typeof text === 'string' &&
+        (text.indexOf('TweetWithVisibilityResults') !== -1 ||
+         text.indexOf('mediaVisibilityResults')     !== -1 ||
+         text.indexOf('possibly_sensitive')         !== -1)) {
+      strip(result);
+    }
+    return result;
+  };
+
+  // Patch fetch (covers GraphQL calls during SPA navigation).
+  var _fetch = window.fetch.bind(window);
+  window.fetch = function (input, init) {
+    var url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    return _fetch(input, init).then(function (res) {
+      if (url.indexOf('/i/api/graphql/') === -1) return res;
+      var clone = res.clone();
+      return clone.text().then(function (text) {
+        if (text.indexOf('possibly_sensitive')   === -1 &&
+            text.indexOf('mediaVisibilityResults') === -1 &&
+            text.indexOf('interstitial')           === -1 &&
+            text.indexOf('age_restriction')        === -1) return res;
+        try {
+          var data = JSON.parse(text);
+          var headers = new Headers(res.headers);
+          headers.delete('content-encoding'); headers.delete('content-length');
+          return new Response(JSON.stringify(data), { status: res.status, statusText: res.statusText, headers: headers });
+        } catch (e) { return res; }
+      }).catch(function () { return res; });
+    });
+  };
+
+  // Blur mode: watch for articles and stamp sensitive ones.
+  if (blurMode) {
+    new MutationObserver(function () {
+      document.querySelectorAll('article:not([data-betterx-sensitive-checked])').forEach(function (article) {
+        article.setAttribute('data-betterx-sensitive-checked', '1');
+        var timeLink = article.querySelector('a[href*="/status/"] time');
+        var link = timeLink ? timeLink.closest('a') : null;
+        var href = link ? link.getAttribute('href') : null;
+        var match = href ? href.match(/\\/status\\/(\\d+)/) : null;
+        if (match && sensitiveIds.has(match[1])) article.setAttribute('data-betterx-sensitive', '1');
+      });
+    }).observe(document.documentElement, { childList: true, subtree: true });
+  }
+})();`;
+
+function injectSensitiveMediaPatch(): void {
+  // The nonce has been stripped from the CSP by security.ts, so 'unsafe-inline'
+  // is now active and we can inject a plain inline script without a nonce.
+  function doInject(root: Element): void {
+    const s = document.createElement("script");
+    s.textContent = SENSITIVE_MEDIA_PATCH;
+    root.appendChild(s);
+    s.remove();
+  }
+  const el = document.documentElement;
+  if (el) {
+    doInject(el);
+  } else {
+    const mo = new MutationObserver(() => {
+      const root = document.documentElement;
+      if (root) { mo.disconnect(); doInject(root); }
+    });
+    mo.observe(document, { childList: true });
+  }
+}
+
+injectSensitiveMediaPatch();
+
+// ─── Stats Patch ─────────────────────────────────────────────────────────────
+// Injected at document_start so we intercept Twitter's first Viewer GraphQL
+// call (which fires before the renderer runs). Stores follower/following counts
+// in window.__betterxUserStats so the renderer can read them immediately.
+
+const STATS_PATCH = `(function () {
+  // Get the logged-in user's numeric ID from the twid cookie (format: u%3D{id}).
+  var twid = document.cookie.split('; ').find(function(c) { return c.startsWith('twid='); });
+  var userId = twid ? decodeURIComponent(twid.split('=')[1]).replace('u=', '') : null;
+  console.log('[BetterX STATS] twid cookie:', twid ? twid.substring(0, 30) : 'NOT FOUND', '| userId:', userId);
+  if (!userId) return;
+
+  function bxEmit(stats) {
+    console.log('[BetterX STATS] found for user ' + userId + ':', JSON.stringify(stats));
+    window.__betterxUserStats = stats;
+    window.dispatchEvent(new CustomEvent('betterx:user-stats', { detail: stats }));
+  }
+
+  // Recursively search a parsed response for the logged-in user's follower stats.
+  // GraphQL format: { rest_id: "123", legacy: { followers_count, friends_count } }
+  // REST format:    { id_str: "123", followers_count, friends_count }
+  function bxFind(data, depth) {
+    if (depth > 15 || !data || typeof data !== 'object') return null;
+    if (Array.isArray(data)) {
+      for (var i = 0; i < data.length; i++) {
+        var f = bxFind(data[i], depth + 1);
+        if (f) return f;
+      }
+      return null;
+    }
+    if (data.rest_id === userId && data.legacy &&
+        typeof data.legacy.followers_count === 'number' &&
+        typeof data.legacy.friends_count === 'number') {
+      return { followers: data.legacy.followers_count, following: data.legacy.friends_count };
+    }
+    if (data.id_str === userId &&
+        typeof data.followers_count === 'number' &&
+        typeof data.friends_count === 'number') {
+      return { followers: data.followers_count, following: data.friends_count };
+    }
+    var keys = Object.keys(data);
+    for (var i = 0; i < keys.length; i++) {
+      if (data[keys[i]] && typeof data[keys[i]] === 'object') {
+        var f = bxFind(data[keys[i]], depth + 1);
+        if (f) return f;
+      }
+    }
+    return null;
+  }
+
+  var _origOpen = XMLHttpRequest.prototype.open;
+  var _origSend = XMLHttpRequest.prototype.send;
+
+  XMLHttpRequest.prototype.open = function (method, url) {
+    this.__bxUrl = typeof url === 'string' ? url : '';
+    return _origOpen.apply(this, arguments);
+  };
+
+  XMLHttpRequest.prototype.send = function (body) {
+    if (window.__betterxUserStats) return _origSend.apply(this, arguments);
+    var url = this.__bxUrl || '';
+    if (url.indexOf('/i/api/graphql/') !== -1 ||
+        url.indexOf('/account/multi/list.json') !== -1 ||
+        url.indexOf('/users/show.json') !== -1) {
+      this.addEventListener('load', function () {
+        if (window.__betterxUserStats) return;
+        try {
+          var stats = bxFind(JSON.parse(this.responseText), 0);
+          if (stats) bxEmit(stats);
+        } catch(e) {}
+      });
+    }
+    return _origSend.apply(this, arguments);
+  };
+
+  // On window.load (main.js is in cache by then), scan it for the UserByRestId
+  // queryId and make a targeted GraphQL call for the logged-in user's stats.
+  window.addEventListener('load', function () {
+    if (window.__betterxUserStats) return;
+    var ct0 = document.cookie.split('; ').find(function(c) { return c.startsWith('ct0='); });
+    var csrf = ct0 ? ct0.split('=')[1] : null;
+    if (!csrf) return;
+
+    var entries = performance.getEntriesByType('resource');
+    var mainUrl = null;
+    for (var i = 0; i < entries.length; i++) {
+      var n = entries[i].name;
+      if (n.indexOf('/main.') !== -1 && n.endsWith('.js')) { mainUrl = n; break; }
+    }
+    if (!mainUrl) return;
+
+    var bundleXhr = new XMLHttpRequest();
+    _origOpen.call(bundleXhr, 'GET', mainUrl, true);
+    bundleXhr.addEventListener('load', function () {
+      if (window.__betterxUserStats) return;
+      var text = this.responseText;
+      var patterns = [
+        /queryId:"([^"]+)",operationName:"UserByRestId"/,
+        /"queryId":"([^"]+)","operationName":"UserByRestId"/,
+        /operationName:"UserByRestId",queryId:"([^"]+)"/,
+        /"operationName":"UserByRestId","queryId":"([^"]+)"/
+      ];
+      var queryId = null;
+      for (var p = 0; p < patterns.length; p++) {
+        var m = text.match(patterns[p]);
+        if (m) { queryId = m[1]; break; }
+      }
+      console.log('[BetterX STATS] UserByRestId queryId:', queryId);
+      if (!queryId) return;
+
+      var vars = encodeURIComponent(JSON.stringify({ userId: userId, withSafetyModeUserFields: true }));
+      var apiXhr = new XMLHttpRequest();
+      _origOpen.call(apiXhr, 'GET', '/i/api/graphql/' + queryId + '/UserByRestId?variables=' + vars, true);
+      apiXhr.setRequestHeader('Authorization', 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA');
+      apiXhr.setRequestHeader('x-csrf-token', csrf);
+      apiXhr.setRequestHeader('x-twitter-auth-type', 'OAuth2Session');
+      apiXhr.setRequestHeader('x-twitter-active-user', 'yes');
+      apiXhr.withCredentials = true;
+      apiXhr.addEventListener('load', function () {
+        if (window.__betterxUserStats) return;
+        try {
+          var stats = bxFind(JSON.parse(this.responseText), 0);
+          if (stats) bxEmit(stats);
+          else console.log('[BetterX STATS] UserByRestId no match, status=' + this.status + ', body=' + this.responseText.substring(0, 300));
+        } catch(e) { console.log('[BetterX STATS] UserByRestId parse error:', e); }
+      });
+      _origSend.call(apiXhr, null);
+    });
+    _origSend.call(bundleXhr, null);
+  });
+})();`;
+
+function injectStatsPatch(): void {
+  function doInject(root: Element): void {
+    const s = document.createElement("script");
+    s.textContent = STATS_PATCH;
+    root.appendChild(s);
+    s.remove();
+  }
+  const el = document.documentElement;
+  if (el) {
+    doInject(el);
+  } else {
+    const mo = new MutationObserver(() => {
+      const root = document.documentElement;
+      if (root) { mo.disconnect(); doInject(root); }
+    });
+    mo.observe(document, { childList: true });
+  }
+}
+
+console.log('[BetterX STATS] calling injectStatsPatch');
+injectStatsPatch();
+
 // ─── Preload ──────────────────────────────────────────────────────────────────
 // Exposes ONLY typed ipcRenderer calls via contextBridge.
 // No raw ipcRenderer access. No modifyCSP. No disable-web-security.
@@ -50,7 +328,6 @@ const api: ElectronAPI = {
     return () => ipcRenderer.removeListener("bx:oauth:complete", handler);
   },
 
-  cloudLogout: (serverUrl) => ipcRenderer.invoke("bx:cloud:logout", serverUrl),
   cloudFetch: (serverUrl, path, options) => ipcRenderer.invoke("bx:cloud:fetch", serverUrl, path, options),
 
   discordRPC: {

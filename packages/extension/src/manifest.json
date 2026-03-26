@@ -17,9 +17,16 @@
   "host_permissions": [
     "https://x.com/*",
     "https://twitter.com/*",
+    "https://cloud.betterx.mopigames.dev/*",
     "http://localhost:3000/*"
   ],
   "content_scripts": [
+    {
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "js": ["src/content/main-world.ts"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
     {
       "matches": ["https://x.com/*", "https://twitter.com/*"],
       "js": ["src/content/early-logo.ts"],

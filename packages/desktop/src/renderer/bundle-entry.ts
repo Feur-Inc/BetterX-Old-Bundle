@@ -16,11 +16,12 @@ import {
   type BetterXContext,
   injectNavButton,
   watchNavButton,
-  injectFooterBadge,
   applyAccentColor,
   injectStyle,
   notifications,
   logger,
+  setFetchProxy,
+  type ProxyFetchInit,
 } from "@betterx/core";
 import { BETTERX_STYLES } from "@betterx/core";
 import { allPlugins } from "@betterx/plugins";
@@ -55,6 +56,12 @@ async function init(): Promise<void> {
   // 6. Accent color
   applyAccentColor();
 
+  // Wire up proxy fetch through Electron's main process (bypasses X's CSP)
+  setFetchProxy(async (url: string, init?: ProxyFetchInit) => {
+    const u = new URL(url);
+    return window.electronAPI!.cloudFetch(u.origin, u.pathname + u.search, init);
+  });
+
   // 7. Register tabs
   const logoUrl = "betterx://assets/icon.svg";
   const ctx: BetterXContext = {
@@ -67,9 +74,6 @@ async function init(): Promise<void> {
     openThemesFolder: () => { window.electronAPI?.themes.openFolder(); },
     openOAuth: (url: string) => window.electronAPI!.openOAuth(url),
     onOAuthComplete: (cb: () => void) => window.electronAPI!.onOAuthComplete(cb),
-    cloudLogout: (serverUrl: string) => window.electronAPI!.cloudLogout(serverUrl),
-    cloudFetch: (serverUrl: string, path: string, options?: { method?: string; body?: string }) =>
-      window.electronAPI!.cloudFetch(serverUrl, path, options),
   };
   TabRegistry.register(PluginsTab);
   TabRegistry.register(ThemesTab);
@@ -88,9 +92,6 @@ async function init(): Promise<void> {
   // 9. Nav button
   injectNavButton(openModal, logoUrl);
   watchNavButton(openModal, logoUrl);
-
-  // 10. Footer
-  injectFooterBadge(openModal);
 
   // 11. Listen for bundle updates from main process
   window.electronAPI?.update?.onBundleApplied(() => {

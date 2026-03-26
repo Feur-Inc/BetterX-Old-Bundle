@@ -4,6 +4,7 @@ import AdBlocker from "./AdBlocker/index.js";
 import BringTwitterBack from "./BringTwitterBack/index.js";
 import ClickEffects from "./ClickEffects/index.js";
 import CustomAccentColor from "./CustomAccentColor/index.js";
+import DMDrawerResizer from "./DMDrawerResizer/index.js";
 import DontOverthink from "./DontOverthink/index.js";
 import FixUpX from "./FixUpX/index.js";
 import GifFavorites from "./GifFavorites/index.js";
@@ -15,6 +16,7 @@ import Oneko from "./oneko/index.js";
 import QuickEmoji from "./QuickEmoji/index.js";
 import RemoveGrok from "./RemoveGrok/index.js";
 import RemovePremium from "./RemovePremium/index.js";
+import SensitiveMedia from "./SensitiveMedia/index.js";
 import TweetScreenshot from "./TweetScreenshot/index.js";
 import UsersStatus from "./UsersStatus/index.js";
 
@@ -26,6 +28,7 @@ export const allPlugins: PluginDefinition<any>[] = [
   BringTwitterBack,
   ClickEffects,
   CustomAccentColor,
+  DMDrawerResizer,
   DontOverthink,
   FixUpX,
   GifFavorites,
@@ -37,6 +40,7 @@ export const allPlugins: PluginDefinition<any>[] = [
   QuickEmoji,
   RemoveGrok,
   RemovePremium,
+  SensitiveMedia,
   TweetScreenshot,
   UsersStatus,
 ];
@@ -46,6 +50,7 @@ export {
   BringTwitterBack,
   ClickEffects,
   CustomAccentColor,
+  DMDrawerResizer,
   DontOverthink,
   FixUpX,
   GifFavorites,
@@ -57,6 +62,7 @@ export {
   QuickEmoji,
   RemoveGrok,
   RemovePremium,
+  SensitiveMedia,
   TweetScreenshot,
   UsersStatus,
 };

@@ -97,6 +97,25 @@ bun run build:extension
 bun run build:desktop
 ```
 
+### Building the Firefox Extension (for AMO)
+
+Requirements:
+- [Bun](https://bun.sh) 1.x (`curl -fsSL https://bun.sh/install | bash`)
+- Linux, macOS, or Windows (WSL)
+
+Steps:
+
+```bash
+git clone https://github.com/Feur-Inc/BetterX.git
+cd BetterX
+bun install
+cd packages/extension
+bun run build:firefox   # outputs to dist/firefox/
+bun run pack:firefox    # creates dist/betterx-firefox.zip
+```
+
+The resulting `dist/betterx-firefox.zip` is the exact file submitted to AMO.
+
 ### Dev Mode (Desktop)
 
 ```bash
@@ -140,6 +159,44 @@ export default definePlugin({
 ```
 
 Add your plugin to `packages/plugins/src/MyPlugin/index.ts` and it will appear in the settings panel on both platforms.
+
+### Fetching External Resources
+
+X enforces a strict Content Security Policy that blocks most external requests from page scripts. BetterX provides two proxy helpers that route requests through a CSP-exempt context (the extension background service worker, or Electron's main process on desktop):
+
+```typescript
+import { proxyImage, proxyFetch } from "@betterx/core";
+```
+
+#### `proxyImage(url)`
+
+Fetches an image and returns a `data:` URL safe to use anywhere a URL is accepted.
+
+```typescript
+// In a plugin's start():
+const src = await proxyImage("https://example.com/sprite.png");
+el.style.backgroundImage = `url('${src}')`;
+myImg.src = src;
+```
+
+#### `proxyFetch(url, init?)`
+
+Fetches any URL and returns `{ ok, status, text, json }`.
+
+```typescript
+// GET
+const { ok, json } = await proxyFetch("https://api.example.com/data");
+
+// POST
+const res = await proxyFetch("https://api.example.com/save", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ key: "value" }),
+});
+if (res.ok) console.log(res.json);
+```
+
+> **Note:** Never use raw `fetch()` or hardcode external URLs in `<img src>` / `background-image` — they will be blocked by X's CSP in the extension. Always go through `proxyImage` / `proxyFetch`.
 
 ---
 

@@ -1,4 +1,4 @@
-import { definePlugin, Devs, OptionType } from "@betterx/core";
+import { definePlugin, Devs, OptionType, proxyImage } from "@betterx/core";
 
 // Oneko - the classic cat that follows your cursor
 // Ported from adryd325/oneko.js, MIT license
@@ -40,6 +40,7 @@ let idleAnimationFrame = 0;
 let lastFrameTimestamp: number | null = null;
 let animationFrameId: number | null = null;
 let mouseMoveHandler: ((e: MouseEvent) => void) | null = null;
+let nekoSpeed = 10;
 
 function setSprite(name: string, frame: number): void {
   if (!nekoEl) return;
@@ -129,33 +130,42 @@ function frame(nekoSpeed: number): void {
   }
 }
 
-function onAnimationFrame(timestamp: number, nekoSpeed: number): void {
+function onAnimationFrame(timestamp: number): void {
   if (!nekoEl?.isConnected) return;
   if (lastFrameTimestamp === null) lastFrameTimestamp = timestamp;
   if (timestamp - lastFrameTimestamp > 100) {
     lastFrameTimestamp = timestamp;
     frame(nekoSpeed);
   }
-  animationFrameId = requestAnimationFrame((ts) => onAnimationFrame(ts, nekoSpeed));
+  animationFrameId = requestAnimationFrame(onAnimationFrame);
 }
 
 export default definePlugin({
   name: "Oneko",
   description: "A cat that follows your cursor around the screen",
   authors: [Devs.Mopi],
-  platform: "desktop",
   options: {
     speed: {
       type: OptionType.NUMBER,
       default: 1,
       label: "Speed",
-      description: "Speed multiplier (0.1 – 5). Re-enable to apply.",
+      description: "Speed multiplier (0.1 – 5).",
+      onChange(val) {
+        nekoSpeed = 10 * (Number(val) || 1);
+      },
     },
     theme: {
       type: OptionType.SELECT,
       default: "default",
       label: "Theme",
-      description: "Cat skin. Re-enable to apply.",
+      description: "Cat skin.",
+      onChange(val) {
+        if (!nekoEl) return;
+        const rawUrl = val === "default" ? DEFAULT_GIF_URL : `${THEME_BASE_URL}${val}.png`;
+        proxyImage(rawUrl).then((url) => {
+          if (nekoEl) nekoEl.style.backgroundImage = `url('${url}')`;
+        });
+      },
       options: [
         { label: "Default", value: "default" },
         { label: "Ace", value: "ace" },
@@ -178,13 +188,14 @@ export default definePlugin({
     },
   },
 
-  start() {
+  async start() {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const speed = this.settings.store.speed;
     const theme = this.settings.store.theme;
-    const nekoSpeed = 10 * (speed || 1);
-    const bgUrl = theme === "default" ? DEFAULT_GIF_URL : `${THEME_BASE_URL}${theme}.png`;
+    nekoSpeed = 10 * (Number(speed) || 1);
+    const rawUrl = theme === "default" ? DEFAULT_GIF_URL : `${THEME_BASE_URL}${theme}.png`;
+    const bgUrl = await proxyImage(rawUrl);
 
     const el = document.createElement("div");
     el.id = "betterx-oneko";
@@ -214,7 +225,7 @@ export default definePlugin({
     };
     document.addEventListener("mousemove", mouseMoveHandler);
 
-    animationFrameId = requestAnimationFrame((ts) => onAnimationFrame(ts, nekoSpeed));
+    animationFrameId = requestAnimationFrame(onAnimationFrame);
   },
 
   stop() {

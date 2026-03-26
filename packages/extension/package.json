@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "bun run build:chrome && bun run build:firefox",
+    "build": "bun run build:chrome && bun run build:firefox && bun run pack",
     "build:chrome": "BROWSER=chrome vite build",
     "build:firefox": "BROWSER=firefox vite build",
     "dev": "bun run dev:chrome",

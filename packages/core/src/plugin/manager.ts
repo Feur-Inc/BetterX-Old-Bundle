@@ -7,6 +7,7 @@ import type {
   PluginStorageData,
 } from "../types/plugin.js";
 import { logger } from "../utils/logger.js";
+import { notifications } from "../ui/notification.js";
 
 // ─── Plugin Manager ───────────────────────────────────────────────────────────
 
@@ -104,6 +105,21 @@ export class PluginManager {
     }
 
     await this.persist();
+
+    if (plugin.requiresRestart) {
+      notifications.showWarning(
+        `"${plugin.name}" requires a page refresh to fully apply.`,
+        {
+          duration: 0,
+          actions: [
+            {
+              label: "Refresh now",
+              callback: () => location.reload(),
+            },
+          ],
+        },
+      );
+    }
   }
 
   async updateOption(pluginName: string, key: string, value: unknown): Promise<void> {

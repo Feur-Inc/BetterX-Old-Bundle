@@ -26,6 +26,9 @@ const KNOWN_LOGO_PREFIXES = [
 function findAllLogoPaths(): SVGPathElement[] {
   const results: SVGPathElement[] = [];
   for (const path of document.querySelectorAll<SVGPathElement>("svg path")) {
+    // Skip every BetterX UI element (nav button, modal, badges, etc.).
+    // All betterx-owned elements have IDs or classes prefixed with "betterx-".
+    if (path.closest('[id^="betterx-"], [class*="betterx-"]')) continue;
     const d = path.getAttribute("d") ?? "";
     if (KNOWN_LOGO_PREFIXES.some((p) => d.startsWith(p))) results.push(path);
   }

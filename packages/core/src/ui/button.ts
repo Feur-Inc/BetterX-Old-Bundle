@@ -43,6 +43,30 @@ function syncCompact(): void {
   li.classList.toggle("betterx-nav-compact", isNavCompact());
 }
 
+/**
+ * Read the text color X is currently using for nav item labels.
+ * X sets this as an inline style on each item's text container — it is NOT
+ * inherited from any ancestor — so we must sample it directly from a sibling.
+ *
+ * We specifically prefer INACTIVE nav items. Active items (e.g. Home when
+ * you're on /home) use CSS classes for their colour (potentially the accent
+ * colour) rather than an inline style, so sampling them can produce the wrong
+ * value. Inactive items always carry an explicit inline `style="color: …"`.
+ */
+function getNavTextColor(): string {
+  const candidates = document.querySelectorAll(
+    'nav[aria-label="Primary"] a [dir="ltr"]'
+  );
+  // Prefer an element that has an inline color — those are always inactive items.
+  for (const el of candidates) {
+    if ((el as HTMLElement).style.color) {
+      return getComputedStyle(el).color;
+    }
+  }
+  // Fallback: first available (e.g. only one nav item rendered so far)
+  return candidates[0] ? getComputedStyle(candidates[0]).color : "";
+}
+
 function buildButton(onClick: OnClickFn, logoUrl: string): HTMLElement {
   const li = document.createElement("li");
   li.id = BUTTON_ID;
@@ -54,6 +78,11 @@ function buildButton(onClick: OnClickFn, logoUrl: string): HTMLElement {
   btn.setAttribute("aria-label", "BetterX");
   btn.setAttribute("title", "BetterX");
   btn.innerHTML = `<span class="betterx-nav-icon">${BETTERX_LOGO_SVG}</span><span class="betterx-nav-label">BetterX</span>`;
+
+  // Mirror X's exact nav text color — X sets this inline per-element, not via
+  // inheritance, so CSS `inherit` doesn't work reliably here.
+  const navColor = getNavTextColor();
+  if (navColor) btn.style.color = navColor;
 
   btn.addEventListener("click", onClick);
   btn.addEventListener("keydown", (e) => {
@@ -96,16 +125,29 @@ export function ensureNavButton(onClick: OnClickFn, logoUrl: string): void {
 }
 
 /**
- * Watch for SPA navigation removing the nav button and re-inject it.
- * Uses MutationObserver on document.body (childList only, no subtree) for efficiency.
+ * Watch for the nav button being missing (initial render on delegate accounts,
+ * SPA navigation removing it, etc.) and inject it whenever it disappears.
+ * Uses subtree observation so it catches the nav being rendered anywhere in
+ * the DOM, not just direct children of body. RAF-debounced to coalesce the
+ * many rapid mutations X produces while loading tweets.
  */
 export function watchNavButton(onClick: OnClickFn, logoUrl: string): () => void {
+  let rafId = 0;
+
   const observer = new MutationObserver(() => {
-    if (!document.getElementById(BUTTON_ID)) {
-      injectNavButton(onClick, logoUrl);
-    }
+    if (document.getElementById(BUTTON_ID)) return;
+    if (rafId) return;
+    rafId = requestAnimationFrame(() => {
+      rafId = 0;
+      if (!document.getElementById(BUTTON_ID)) {
+        injectNavButton(onClick, logoUrl);
+      }
+    });
   });
 
-  observer.observe(document.body, { childList: true });
-  return () => observer.disconnect();
+  observer.observe(document.body, { childList: true, subtree: true });
+  return () => {
+    observer.disconnect();
+    if (rafId) cancelAnimationFrame(rafId);
+  };
 }

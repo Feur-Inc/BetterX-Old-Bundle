@@ -196,11 +196,6 @@ app.whenReady().then(async () => {
     return cookies[0]?.value ? `bx_session=${cookies[0].value}` : "";
   }
 
-  ipcMain.handle("bx:cloud:logout", async (_event, serverUrl: string) => {
-    const url = new URL(serverUrl);
-    await session.defaultSession.cookies.remove(`${url.origin}`, "bx_session");
-  });
-
   ipcMain.handle("bx:cloud:fetch", async (_event, serverUrl: string, path: string, options?: { method?: string; body?: string }) => {
     try {
       const cookie = await getCloudCookie(serverUrl);
@@ -213,6 +208,30 @@ app.whenReady().then(async () => {
         body: options?.body ?? null,
         redirect: "manual",
       });
+
+      // Sync Set-Cookie back into Electron's session cookie jar so logout
+      // (which expires the cookie server-side) is reflected locally too.
+      const setCookie = res.headers.get("set-cookie");
+      if (setCookie?.includes("bx_session")) {
+        const url = new URL(serverUrl);
+        const maxAgeMatch = setCookie.match(/max-age=(\d+)/i);
+        if (maxAgeMatch && parseInt(maxAgeMatch[1]) === 0) {
+          await session.defaultSession.cookies.remove(url.origin, "bx_session");
+        } else {
+          const valueMatch = setCookie.match(/bx_session=([^;]+)/);
+          if (valueMatch?.[1]) {
+            const maxAge = maxAgeMatch ? parseInt(maxAgeMatch[1]) : undefined;
+            await session.defaultSession.cookies.set({
+              url: url.origin,
+              name: "bx_session",
+              value: valueMatch[1],
+              httpOnly: true,
+              ...(maxAge ? { expirationDate: Math.floor(Date.now() / 1000) + maxAge } : {}),
+            });
+          }
+        }
+      }
+
       const text = await res.text();
       let json: unknown = null;
       try { json = JSON.parse(text); } catch { /* not JSON */ }

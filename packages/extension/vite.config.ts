@@ -22,6 +22,11 @@ export default defineConfig({
             scripts: [bg.service_worker as string],
             type: bg.type as string,
           } as typeof manifest.background;
+          const bss = manifest.browser_specific_settings as
+            Record<string, Record<string, unknown>> | undefined;
+          if (bss?.gecko) {
+            bss.gecko["data_collection_permissions"] = { required: ["none"], optional: [] };
+          }
         }
         return manifest;
       },

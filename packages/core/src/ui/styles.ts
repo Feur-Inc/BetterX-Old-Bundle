@@ -1064,7 +1064,6 @@ export const BETTERX_STYLES = `
   border-radius: 9999px;
   cursor: pointer;
   transition: background 0.15s;
-  color: var(--betterx-textColor, inherit);
   text-decoration: none;
   width: 100%;
 }
@@ -1090,6 +1089,7 @@ export const BETTERX_STYLES = `
 .betterx-nav-label {
   font-size: 20px;
   font-weight: 400;
+  font-family: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 .betterx-nav-compact .betterx-nav-label {
@@ -1241,20 +1241,4 @@ export const BETTERX_STYLES = `
 @keyframes betterxSlideUp {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-
-/* === Footer === */
-#betterx-footer-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--betterx-textColorSecondary);
-  padding: 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: color 0.15s;
-}
-#betterx-footer-badge:hover { color: var(--betterx-accentColor); }
-#betterx-footer-badge svg { width: 16px; height: 16px; color: var(--betterx-accentColor); }
-`;
+}`;

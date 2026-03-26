@@ -3,27 +3,11 @@ import type { IStorage } from "../../types/storage.js";
 import type { PluginStorageData } from "../../types/plugin.js";
 import { logger } from "../../utils/logger.js";
 import { BETTERX_VERSION } from "../../utils/constants.js";
+import { proxyFetch } from "../../utils/proxy.js";
 
 // ─── Cloud Sync Tab ───────────────────────────────────────────────────────────
 
-/** Unified fetch that uses IPC proxy on desktop (bypasses CSP) or direct fetch on extension. */
-async function cloudRequest(
-  ctx: BetterXContext,
-  server: string,
-  path: string,
-  options?: { method?: string; body?: string },
-): Promise<{ ok: boolean; status: number; json: unknown }> {
-  if (ctx.cloudFetch) {
-    return ctx.cloudFetch(server, path, options);
-  }
-  const res = await fetch(`${server}${path}`, {
-    method: options?.method ?? "GET",
-    headers: options?.body ? { "Content-Type": "application/json" } : {},
-    body: options?.body ?? null,
-  });
-  const json = res.ok ? await res.json() : null;
-  return { ok: res.ok, status: res.status, json };
-}
+const DEFAULT_SERVER = "https://cloud.betterx.mopigames.dev";
 
 // ─── Local JSON Config Helpers ──────────────────────────────────────────────
 
@@ -99,7 +83,7 @@ async function refreshStatus(container: HTMLElement, ctx: BetterXContext) {
   const logoutBtn = container.querySelector("#cloud-logout-btn") as HTMLElement;
   const serverInput = container.querySelector("#cloud-server-url") as HTMLInputElement;
 
-  const server = serverInput?.value.replace(/\/+$/, "") || localStorage.getItem("bx_cloud_server") || "http://localhost:3000";
+  const server = serverInput?.value.replace(/\/+$/, "") || localStorage.getItem("bx_cloud_server") || DEFAULT_SERVER;
 
   if (!server) {
     statusVal.textContent = "Not Configured";
@@ -110,7 +94,7 @@ async function refreshStatus(container: HTMLElement, ctx: BetterXContext) {
   }
 
   try {
-    const res = await cloudRequest(ctx, server, "/api/config");
+    const res = await proxyFetch(`${server}/api/config`);
     if (res.ok) {
       statusVal.textContent = "Connected";
       statusVal.style.color = "var(--betterx-success)";
@@ -130,7 +114,7 @@ async function refreshStatus(container: HTMLElement, ctx: BetterXContext) {
   }
 }
 
-async function setupDesktopEvents(container: HTMLElement, ctx: BetterXContext) {
+async function setupEvents(container: HTMLElement, ctx: BetterXContext) {
   const loginBtn = container.querySelector("#cloud-login-btn") as HTMLButtonElement;
   const logoutBtn = container.querySelector("#cloud-logout-btn") as HTMLButtonElement;
   const pushBtn = container.querySelector("#cloud-push-btn") as HTMLButtonElement;
@@ -140,7 +124,7 @@ async function setupDesktopEvents(container: HTMLElement, ctx: BetterXContext) {
   const autoSyncToggle = container.querySelector("#cloud-autosync-toggle") as HTMLInputElement;
   const serverInput = container.querySelector("#cloud-server-url") as HTMLInputElement;
 
-  const getServer = () => serverInput.value.replace(/\/+$/, "") || "http://localhost:3000";
+  const getServer = () => serverInput.value.replace(/\/+$/, "") || DEFAULT_SERVER;
 
   serverInput.addEventListener("change", () => {
     localStorage.setItem("bx_cloud_server", getServer());
@@ -184,10 +168,7 @@ async function setupDesktopEvents(container: HTMLElement, ctx: BetterXContext) {
   });
 
   logoutBtn.addEventListener("click", async () => {
-    if (ctx.cloudLogout) {
-      await ctx.cloudLogout(getServer());
-    }
-    localStorage.removeItem("bx_cloud_token");
+    await proxyFetch(`${getServer()}/auth/logout`).catch(() => {});
     refreshStatus(container, ctx);
   });
 
@@ -198,7 +179,7 @@ async function setupDesktopEvents(container: HTMLElement, ctx: BetterXContext) {
       const pluginStates = await ctx.storage.getPluginStates();
       const themeState = await ctx.storage.getThemeState();
 
-      const res = await cloudRequest(ctx, getServer(), "/api/config", {
+      const res = await proxyFetch(`${getServer()}/api/config`, {
         method: "POST",
         body: JSON.stringify({ plugin_states: pluginStates, theme_state: themeState }),
       });
@@ -217,7 +198,7 @@ async function setupDesktopEvents(container: HTMLElement, ctx: BetterXContext) {
     pullBtn.disabled = true;
     pullBtn.textContent = "Pulling...";
     try {
-      const res = await cloudRequest(ctx, getServer(), "/api/config");
+      const res = await proxyFetch(`${getServer()}/api/config`);
       if (res.ok) {
         const data = res.json as { plugin_states: Record<string, unknown>; theme_state: Record<string, unknown> };
         await ctx.storage.setPluginStates(data.plugin_states as any);
@@ -241,8 +222,8 @@ async function setupDesktopEvents(container: HTMLElement, ctx: BetterXContext) {
   });
 }
 
-function initDesktop(container: HTMLElement, ctx: BetterXContext): void {
-  const savedServer = localStorage.getItem("bx_cloud_server") || "http://localhost:3000";
+function init(container: HTMLElement, ctx: BetterXContext): void {
+  const savedServer = localStorage.getItem("bx_cloud_server") || DEFAULT_SERVER;
 
   container.innerHTML = `
     <div class="betterx-cloud-container">
@@ -259,7 +240,7 @@ function initDesktop(container: HTMLElement, ctx: BetterXContext): void {
             <div class="betterx-option-description">The URL of your BetterX cloud-sync instance.</div>
           </div>
           <div class="betterx-option-control">
-            <input type="text" id="cloud-server-url" class="betterx-input-text" value="${savedServer}" placeholder="http://localhost:3000">
+            <input type="text" id="cloud-server-url" class="betterx-input-text" value="${savedServer}" placeholder="${DEFAULT_SERVER}">
           </div>
         </div>
       </div>
@@ -311,111 +292,12 @@ function initDesktop(container: HTMLElement, ctx: BetterXContext): void {
     </div>
   `;
 
-  setupDesktopEvents(container, ctx);
+  setupEvents(container, ctx);
   refreshStatus(container, ctx);
 
   if (ctx.onOAuthComplete) {
     ctx.onOAuthComplete(() => refreshStatus(container, ctx));
   }
-}
-
-function initExtension(container: HTMLElement, ctx: BetterXContext): void {
-  const render = () => {
-    const savedServer = localStorage.getItem("bx_cloud_server");
-    const isConfigured = !!savedServer;
-
-    container.innerHTML = `
-      <div class="betterx-cloud-container" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:24px;padding:20px;">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;">
-          ${isConfigured ? `
-            <button id="cloud-open-panel" class="betterx-button betterx-button-primary" style="padding:16px 40px;font-size:18px;border-radius:9999px;font-weight:bold;">
-              Open Cloud Sync Panel
-            </button>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <p style="color:var(--betterx-textColorSecondary);font-size:13px;opacity:0.8;margin:0;">
-                ${savedServer}
-              </p>
-              <button id="cloud-edit-server" class="betterx-button betterx-button-secondary" style="padding:4px 8px;font-size:11px;height:auto;line-height:1;">Change</button>
-            </div>
-          ` : `
-            <h3 style="margin:0;">Cloud Sync</h3>
-            <p style="color:var(--betterx-textColorSecondary);font-size:14px;text-align:center;max-width:300px;">Enter your BetterX cloud server URL to get started.</p>
-            <div style="display:flex;gap:8px;width:100%;max-width:320px;">
-              <input type="text" id="cloud-server-input" class="betterx-input-text" placeholder="http://localhost:3000" style="flex:1;">
-              <button id="cloud-save-server" class="betterx-button betterx-button-primary">Save</button>
-            </div>
-          `}
-        </div>
-
-        <div style="width:100%;height:1px;background:var(--betterx-borderColor);opacity:0.3;"></div>
-
-        <div class="betterx-cloud-sync-ops card" style="width:100%;max-width:400px;margin:0;">
-          <h3 style="margin-top:0;">Local Sync</h3>
-          <div class="betterx-sync-buttons" style="display:flex;gap:12px;">
-            <button id="cloud-export-btn" class="betterx-button" style="flex:1;">Export JSON</button>
-            <button id="cloud-import-btn" class="betterx-button" style="flex:1;">Import JSON</button>
-          </div>
-          <p class="betterx-help-text" style="margin-bottom:0;">Export or import your settings from a local JSON file.</p>
-        </div>
-      </div>
-    `;
-
-    // Event listeners for Cloud section
-    if (isConfigured) {
-      container.querySelector("#cloud-open-panel")?.addEventListener("click", () => {
-        window.open(savedServer, "_blank");
-      });
-      container.querySelector("#cloud-edit-server")?.addEventListener("click", () => {
-        // Just empty it to trigger the setup UI
-        localStorage.removeItem("bx_cloud_server");
-        render();
-      });
-    } else {
-      const input = container.querySelector("#cloud-server-input") as HTMLInputElement;
-      const saveBtn = container.querySelector("#cloud-save-server");
-      const save = () => {
-        const val = input.value.trim().replace(/\/+$/, "");
-        if (val) {
-          localStorage.setItem("bx_cloud_server", val);
-          render();
-        }
-      };
-      saveBtn?.addEventListener("click", save);
-      input?.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") save();
-      });
-    }
-
-    // Local sync buttons (always present)
-    container.querySelector("#cloud-export-btn")?.addEventListener("click", () => {
-      exportConfig(ctx.storage)
-        .then((json) => downloadJson(json, "betterx-config.json"))
-        .catch((err) => {
-          logger.error("Config export failed", err);
-          ctx.notifications.showError("Failed to export config");
-        });
-    });
-
-    container.querySelector("#cloud-import-btn")?.addEventListener("click", () => {
-      const fileInput = document.createElement("input");
-      fileInput.type = "file";
-      fileInput.accept = ".json,application/json";
-      fileInput.addEventListener("change", () => {
-        const file = fileInput.files?.[0];
-        if (!file) return;
-        file
-          .text()
-          .then((text) => importConfig(ctx.storage, text, ctx))
-          .catch((err) => {
-            logger.error("Config import failed", err);
-            ctx.notifications.showError("Failed to import config — invalid JSON?");
-          });
-      });
-      fileInput.click();
-    });
-  };
-
-  render();
 }
 
 export const CloudTab: SettingsTab = {
@@ -424,12 +306,6 @@ export const CloudTab: SettingsTab = {
   priority: 35,
 
   initialize(container: HTMLElement, ctx: BetterXContext): void {
-    // Desktop has cloudFetch (IPC proxy) — show full UI
-    // Extension can't reach the server due to CSP — show link to web panel
-    if (ctx.platform === "desktop") {
-      initDesktop(container, ctx);
-    } else {
-      initExtension(container, ctx);
-    }
+    init(container, ctx);
   }
 };
