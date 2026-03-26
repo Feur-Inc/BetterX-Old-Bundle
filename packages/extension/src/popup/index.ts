@@ -11,11 +11,11 @@ browser.tabs
       dot?.classList.add("active");
       if (text) text.textContent = "Active on X.com";
     } else {
-      if (text) text.textContent = "Not running — open X.com to start";
+      if (text) text.textContent = "Not running - open X.com to start";
     }
   })
   .catch(() => {
-    if (text) text.textContent = "Not running — open X.com to start";
+    if (text) text.textContent = "Not running - open X.com to start";
   });
 
 document.getElementById("open-tab")?.addEventListener("click", () => {

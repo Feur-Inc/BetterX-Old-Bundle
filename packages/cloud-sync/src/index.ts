@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
+import { cors } from "hono/cors";
+import { logger as honoLogger } from "hono/logger";
 import { db } from "./db/schema.js";
 import { SignJWT, jwtVerify } from "jose";
 
@@ -13,18 +15,44 @@ type Env = {
 const app = new Hono<Env>();
 const JWT_SECRET = new TextEncoder().encode(process.env.SESSION_SECRET || "default_secret_change_me");
 
+app.use("*", honoLogger());
+app.use("*", cors({
+  origin: (origin) => {
+    if (!origin) return null;
+    if (
+      origin.startsWith("chrome-extension://") || 
+      origin.startsWith("moz-extension://") || 
+      origin === process.env.BASE_URL ||
+      origin.includes("twitter.com") ||
+      origin.includes("x.com")
+    ) {
+      return origin;
+    }
+    return null;
+  },
+  allowMethods: ["GET", "POST", "OPTIONS"],
+  allowHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+}));
+
 // ─── Middleware for Auth ─────────────────────────────────────────────────────
 const authMiddleware = async (c: any, next: any) => {
   const token = getCookie(c, "bx_session");
-  const isApi = c.req.path.startsWith("/api/");
-  if (!token) return isApi ? c.json({ error: "Unauthorized" }, 401) : c.redirect("/auth/twitter");
+  const path = c.req.path;
+  const isApi = path.startsWith("/api/");
+  
+  if (!token) {
+    if (isApi) return c.json({ error: "Unauthorized", reason: "no_token" }, 401);
+    return c.redirect("/auth/twitter");
+  }
 
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
     c.set("user", payload);
     await next();
   } catch (e) {
-    return isApi ? c.json({ error: "Unauthorized" }, 401) : c.redirect("/auth/twitter");
+    if (isApi) return c.json({ error: "Unauthorized", reason: "invalid_token" }, 401);
+    return c.redirect("/auth/twitter");
   }
 };
 

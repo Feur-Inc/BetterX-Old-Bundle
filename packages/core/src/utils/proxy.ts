@@ -6,7 +6,7 @@
 // On the extension the background service worker is exempt from the page CSP,
 // so requests are tunnelled through it and returned as data URLs / plain data.
 // On the desktop Electron patches the CSP headers at the network layer, so
-// native fetch works fine — the proxy falls back to it transparently.
+// native fetch works fine - the proxy falls back to it transparently.
 //
 // Usage in a plugin:
 //
@@ -49,7 +49,7 @@ let _fetchFn: ((url: string, init?: ProxyFetchInit) => Promise<ProxyFetchResult>
 /**
  * Register the platform image proxy.
  * Called once by the platform layer (extension content script / desktop preload).
- * Plugins should not call this directly — use {@link proxyImage} instead.
+ * Plugins should not call this directly - use {@link proxyImage} instead.
  */
 export function setImageProxy(fn: (url: string) => Promise<string>): void {
   _imageFn = fn;
@@ -58,7 +58,7 @@ export function setImageProxy(fn: (url: string) => Promise<string>): void {
 /**
  * Register the platform fetch proxy.
  * Called once by the platform layer (extension content script / desktop preload).
- * Plugins should not call this directly — use {@link proxyFetch} instead.
+ * Plugins should not call this directly - use {@link proxyFetch} instead.
  */
 export function setFetchProxy(fn: (url: string, init?: ProxyFetchInit) => Promise<ProxyFetchResult>): void {
   _fetchFn = fn;
@@ -89,7 +89,7 @@ export async function proxyImage(url: string): Promise<string> {
  *
  * @param url  The URL to fetch.
  * @param init Optional method / headers / body (must be serialisable to JSON).
- * @returns    `{ ok, status, text, json }` — `json` is `null` if the response
+ * @returns    `{ ok, status, text, json }` - `json` is `null` if the response
  *             body is not valid JSON.
  *
  * @example

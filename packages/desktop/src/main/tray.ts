@@ -56,7 +56,7 @@ export function createTray(iconPath: string, win: BrowserWindow): void {
   tray.setToolTip("BetterX V3");
   tray.setContextMenu(buildMenu(win));
 
-  // Click toggles show/hide (Linux/Windows — macOS shows context menu)
+  // Click toggles show/hide (Linux/Windows - macOS shows context menu)
   tray.on("click", () => {
     if (win.isVisible() && win.isFocused()) {
       win.hide();

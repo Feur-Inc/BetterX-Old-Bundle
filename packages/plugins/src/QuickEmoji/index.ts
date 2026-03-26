@@ -291,7 +291,7 @@ function getColonQuery(el: HTMLElement): string | null {
   const text = node.textContent ?? "";
   const offset = range.startOffset;
   const before = text.slice(0, offset);
-  // Match :shortcode pattern at end — at least 2 chars after colon
+  // Match :shortcode pattern at end - at least 2 chars after colon
   const match = before.match(/:([a-z0-9_]{2,})$/);
   if (!match || !match[1]) return null;
   return match[1];
@@ -366,7 +366,7 @@ function attachToComposer(composer: HTMLElement): void {
     }
   };
 
-  // Re-check after every keyup too — Draft.js sometimes doesn't fire input on backspace
+  // Re-check after every keyup too - Draft.js sometimes doesn't fire input on backspace
   const onKeyup = (): void => { checkQuery(); };
   const onBlur = (): void => { hideDropdown(); };
 
@@ -387,7 +387,7 @@ function attachToComposer(composer: HTMLElement): void {
 
 export default definePlugin({
   name: "QuickEmoji",
-  description: "Type :emoji_name: to search and insert emojis — Discord-style autocomplete",
+  description: "Type :emoji_name: to search and insert emojis - Discord-style autocomplete",
   authors: [Devs.Mopi],
   options: {
     maxResults: {

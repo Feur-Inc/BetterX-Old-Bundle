@@ -12,7 +12,7 @@ const LOGO_CONFIG: Record<LogoChoice, { path: string; viewBox: string }> = {
   bluesky: { path: BLUESKY_LOGO, viewBox: "0 0 600 500" },
   betterx: { path: BETTERX_LOGO, viewBox: "0 0 200 200" },
 };
-// X logo path starts with this prefix — use startsWith() to avoid whitespace mismatch
+// X logo path starts with this prefix - use startsWith() to avoid whitespace mismatch
 const X_LOGO_PREFIX = "M21.742 21.75l";
 
 // Prefixes for all logo paths so we can find the SVG even after replacement
@@ -212,7 +212,7 @@ export default definePlugin({
       updateStyles();
     };
 
-    // ── Title observer — body MutationObserver doesn't see <head> changes ──────
+    // ── Title observer - body MutationObserver doesn't see <head> changes ──────
     const attachTitleObserver = (): void => {
       const titleEl = document.querySelector("title");
       if (!titleEl) return;
@@ -224,7 +224,7 @@ export default definePlugin({
     if (document.querySelector("title")) {
       attachTitleObserver();
     } else {
-      // <title> not yet in DOM (early injection) — wait for it
+      // <title> not yet in DOM (early injection) - wait for it
       const headObs = new MutationObserver(() => {
         if (document.querySelector("title")) {
           attachTitleObserver();
@@ -236,7 +236,7 @@ export default definePlugin({
     }
 
     // ── Body observer for dynamic content ────────────────────────────────────
-    // Also watch `d` attribute — React may patch the logo path instead of replacing the node
+    // Also watch `d` attribute - React may patch the logo path instead of replacing the node
     const observer = new MutationObserver(() => {
       if (btbDebounce) clearTimeout(btbDebounce);
       btbDebounce = setTimeout(() => {

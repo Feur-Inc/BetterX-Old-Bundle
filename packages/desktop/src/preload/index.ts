@@ -3,7 +3,7 @@ import type { ElectronAPI } from "./api.js";
 
 // ─── Sensitive-media patch injection ─────────────────────────────────────────
 // contextIsolation:true means we can't patch window.JSON.parse directly.
-// Injecting an inline <script> into document bypasses that — scripts appended
+// Injecting an inline <script> into document bypasses that - scripts appended
 // to the DOM execute in the page's main world context, not the preload context.
 // This mirrors the extension's main-world.ts but for Electron.
 
@@ -393,9 +393,9 @@ ipcRenderer.invoke("settings:get", "themeState").then(async (val: unknown) => {
       style.id = STYLE_PREFIX + id;
       style.textContent = processCSS(css);
       root.appendChild(style);
-    } catch { /* theme not available — skip */ }
+    } catch { /* theme not available - skip */ }
   }
-}).catch(() => { /* settings not available — skip early themes */ });
+}).catch(() => { /* settings not available - skip early themes */ });
 
 // ─── Logo Replacement ───────────────────────────────────────────────────────
 const EARLY_LOGOS: Record<string, { path: string; viewBox: string; scale?: string }> = {
@@ -458,4 +458,4 @@ ipcRenderer.invoke("settings:get", "pluginStates").then((val: unknown) => {
     if (replaceLogo()) return;
     obs.observe(document.body, { childList: true, subtree: true });
   }, 10);
-}).catch(() => { /* settings not available — skip early logo */ });
+}).catch(() => { /* settings not available - skip early logo */ });

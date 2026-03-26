@@ -10,7 +10,7 @@ export type BetterXContext = {
   themeManager: ThemeManager;
   notifications: NotificationManager;
   storage: IStorage;
-  /** URL of the BetterX logo image — platform-supplied (betterx:// or chrome-extension://) */
+  /** URL of the BetterX logo image - platform-supplied (betterx:// or chrome-extension://) */
   logoUrl: string;
   /** Current platform ('desktop' or 'extension') */
   platform: "desktop" | "extension";

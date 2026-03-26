@@ -64,7 +64,7 @@ async function importConfig(
     }
   }
 
-  ctx.notifications.showSuccess("Config imported — reload the page to apply changes.");
+  ctx.notifications.showSuccess("Config imported - reload the page to apply changes.");
 }
 
 function downloadJson(content: string, filename: string): void {
@@ -95,7 +95,8 @@ async function refreshStatus(container: HTMLElement, ctx: BetterXContext) {
 
   try {
     const res = await proxyFetch(`${server}/api/config`);
-    if (res.ok) {
+    const data = res.json as any;
+    if (res.ok && data && typeof data === "object" && "plugin_states" in data) {
       statusVal.textContent = "Connected";
       statusVal.style.color = "var(--betterx-success)";
       loginBtn.style.display = "none";
@@ -152,7 +153,7 @@ async function setupEvents(container: HTMLElement, ctx: BetterXContext) {
         .then((text) => importConfig(ctx.storage, text, ctx))
         .catch((err) => {
           logger.error("Config import failed", err);
-          ctx.notifications.showError("Failed to import config — invalid JSON?");
+          ctx.notifications.showError("Failed to import config - invalid JSON?");
         });
     });
     input.click();
@@ -181,6 +182,7 @@ async function setupEvents(container: HTMLElement, ctx: BetterXContext) {
 
       const res = await proxyFetch(`${getServer()}/api/config`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plugin_states: pluginStates, theme_state: themeState }),
       });
 
@@ -200,16 +202,20 @@ async function setupEvents(container: HTMLElement, ctx: BetterXContext) {
     try {
       const res = await proxyFetch(`${getServer()}/api/config`);
       if (res.ok) {
-        const data = res.json as { plugin_states: Record<string, unknown>; theme_state: Record<string, unknown> };
+        const data = res.json as { plugin_states: Record<string, unknown>; theme_state: Record<string, unknown> } | null;
+        if (!data || typeof data !== "object" || !("plugin_states" in data) || !("theme_state" in data)) {
+          alert(`Failed to pull from cloud. Server returned an unexpected response:\n\n${res.text.slice(0, 300)}`);
+          return;
+        }
         await ctx.storage.setPluginStates(data.plugin_states as any);
         await ctx.storage.setThemeState(data.theme_state as any);
         alert("Successfully pulled from cloud! Page will reload to apply changes.");
         location.reload();
       } else {
-        alert("Failed to pull from cloud. Are you logged in?");
+        alert(`Failed to pull from cloud (${res.status}). Are you logged in?`);
       }
     } catch (e) {
-      alert("Error connecting to cloud server.");
+      alert(`Error pulling from cloud: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       pullBtn.disabled = false;
       pullBtn.textContent = "Pull from Cloud";

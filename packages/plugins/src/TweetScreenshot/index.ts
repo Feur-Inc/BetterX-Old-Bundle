@@ -47,7 +47,7 @@ async function captureTweet(tweet: HTMLElement): Promise<void> {
       if (electronAPI?.captureElement) {
         tweet.scrollIntoView({ block: "center" });
         await new Promise((r) => setTimeout(r, 100));
-        // DOMRect properties are prototype getters — serialize to a plain object
+        // DOMRect properties are prototype getters - serialize to a plain object
         // so structured clone over IPC doesn't drop them
         const r = tweet.getBoundingClientRect();
         await electronAPI.captureElement({ x: r.x, y: r.y, width: r.width, height: r.height });

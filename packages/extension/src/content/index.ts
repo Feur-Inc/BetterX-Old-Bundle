@@ -1,5 +1,5 @@
 // ─── BetterX Content Script ───────────────────────────────────────────────────
-// Runs in ISOLATED world — has browser.* API access while still sharing the DOM.
+// Runs in ISOLATED world - has browser.* API access while still sharing the DOM.
 
 import browser from "webextension-polyfill";
 import {

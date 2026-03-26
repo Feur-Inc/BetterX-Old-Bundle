@@ -18,7 +18,7 @@ export type BundleUpdateResult =
 
 /**
  * Fetch the remote SHA-256 hash from the sidecar file.
- * Does NOT hash the bundle stream — just reads the tiny text file.
+ * Does NOT hash the bundle stream - just reads the tiny text file.
  */
 export async function checkForBundleUpdate(
   currentHash: string | null

@@ -196,7 +196,7 @@ const res = await proxyFetch("https://api.example.com/save", {
 if (res.ok) console.log(res.json);
 ```
 
-> **Note:** Never use raw `fetch()` or hardcode external URLs in `<img src>` / `background-image` — they will be blocked by X's CSP in the extension. Always go through `proxyImage` / `proxyFetch`.
+> **Note:** Never use raw `fetch()` or hardcode external URLs in `<img src>` / `background-image` - they will be blocked by X's CSP in the extension. Always go through `proxyImage` / `proxyFetch`.
 
 ---
 

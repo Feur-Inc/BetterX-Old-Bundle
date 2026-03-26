@@ -42,7 +42,7 @@ function buildFavoritesResponse(): unknown {
   return { data: { timeline: { instructions: [{ type: "TimelineAddEntries", entries: items }] } } };
 }
 
-// XHR interception helpers — module-level to avoid `this` binding issues
+// XHR interception helpers - module-level to avoid `this` binding issues
 type PatchedXHR = XMLHttpRequest & { _bxUrl?: string };
 // Simplified open signature without overloads, for safe .call() usage
 type OpenFn = (method: string, url: string | URL, async?: boolean, username?: string | null, password?: string | null) => void;

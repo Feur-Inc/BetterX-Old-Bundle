@@ -120,7 +120,7 @@ function findNav(): HTMLElement | null {
   return null;
 }
 
-/** BetterX nav button ID — skip this when collecting reorderable items. */
+/** BetterX nav button ID - skip this when collecting reorderable items. */
 const BX_NAV_BTN_ID = "betterx-nav-btn";
 
 function getNavItems(nav: HTMLElement): HTMLElement[] {

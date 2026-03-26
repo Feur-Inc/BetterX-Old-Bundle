@@ -19,7 +19,7 @@ export function setAssetsPath(path: string): void {
 
 /**
  * Register the betterx:// custom protocol.
- * Serves bundle.js from disk — no executeJavaScript with raw bundle string.
+ * Serves bundle.js from disk - no executeJavaScript with raw bundle string.
  */
 export function registerBetterxProtocol(): void {
   protocol.registerSchemesAsPrivileged([
@@ -131,7 +131,7 @@ export function createMainWindow(preloadPath: string, enableTransparency: boolea
         return { action: "allow" };
       }
     } catch {
-      // Malformed URL — fall through to open externally
+      // Malformed URL - fall through to open externally
     }
     void shell.openExternal(url);
     return { action: "deny" };

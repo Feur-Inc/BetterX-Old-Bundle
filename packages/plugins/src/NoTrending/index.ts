@@ -28,7 +28,7 @@ export default definePlugin({
           }
         });
 
-      // Explore trending — only target the Explore page timeline, not tweet conversations
+      // Explore trending - only target the Explore page timeline, not tweet conversations
       const explore = document.querySelector('div[aria-label="Timeline: Explore"][role="region"]');
       if (explore?.parentNode) {
         const { parentNode, nextSibling } = explore;
@@ -36,7 +36,7 @@ export default definePlugin({
         noTrendingRemoved.push({ element: explore, parent: parentNode, nextSibling });
       }
 
-      // "Trends for you" — only target regions whose label indicates trending content
+      // "Trends for you" - only target regions whose label indicates trending content
       document
         .querySelectorAll<HTMLElement>('div[role="region"][aria-label]')
         .forEach((region) => {

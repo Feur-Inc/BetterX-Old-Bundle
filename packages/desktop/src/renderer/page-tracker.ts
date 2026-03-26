@@ -5,7 +5,7 @@ let lastDetails = "";
 let lastState = "";
 
 // ─── User Stats ──────────────────────────────────────────────────────────────
-// Intercepted from Twitter's own GraphQL responses — no extra API calls needed.
+// Intercepted from Twitter's own GraphQL responses - no extra API calls needed.
 
 interface UserStats {
   followers: number;

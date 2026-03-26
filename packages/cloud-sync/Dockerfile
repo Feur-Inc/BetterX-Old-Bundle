@@ -2,7 +2,7 @@ FROM oven/bun:latest
 
 WORKDIR /app
 
-# Install deps for cloud-sync only — no monorepo workspace needed
+# Install deps for cloud-sync only - no monorepo workspace needed
 COPY packages/cloud-sync/package.json ./package.json
 RUN bun install --production
 

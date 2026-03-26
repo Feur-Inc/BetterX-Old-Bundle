@@ -24,7 +24,7 @@ function findNavParent(): Element | null {
 
 /**
  * Check if Twitter's nav is in compact (icon-only) mode.
- * Measure the home link's width — in compact mode it's just the icon (~40-60px),
+ * Measure the home link's width - in compact mode it's just the icon (~40-60px),
  * in expanded mode it includes the text label (~180px+).
  */
 function isNavCompact(): boolean {
@@ -45,8 +45,8 @@ function syncCompact(): void {
 
 /**
  * Read the text color X is currently using for nav item labels.
- * X sets this as an inline style on each item's text container — it is NOT
- * inherited from any ancestor — so we must sample it directly from a sibling.
+ * X sets this as an inline style on each item's text container - it is NOT
+ * inherited from any ancestor - so we must sample it directly from a sibling.
  *
  * We specifically prefer INACTIVE nav items. Active items (e.g. Home when
  * you're on /home) use CSS classes for their colour (potentially the accent
@@ -57,7 +57,7 @@ function getNavTextColor(): string {
   const candidates = document.querySelectorAll(
     'nav[aria-label="Primary"] a [dir="ltr"]'
   );
-  // Prefer an element that has an inline color — those are always inactive items.
+  // Prefer an element that has an inline color - those are always inactive items.
   for (const el of candidates) {
     if ((el as HTMLElement).style.color) {
       return getComputedStyle(el).color;
@@ -79,7 +79,7 @@ function buildButton(onClick: OnClickFn, logoUrl: string): HTMLElement {
   btn.setAttribute("title", "BetterX");
   btn.innerHTML = `<span class="betterx-nav-icon">${BETTERX_LOGO_SVG}</span><span class="betterx-nav-label">BetterX</span>`;
 
-  // Mirror X's exact nav text color — X sets this inline per-element, not via
+  // Mirror X's exact nav text color - X sets this inline per-element, not via
   // inheritance, so CSS `inherit` doesn't work reliably here.
   const navColor = getNavTextColor();
   if (navColor) btn.style.color = navColor;
@@ -107,7 +107,7 @@ export function injectNavButton(onClick: OnClickFn, logoUrl: string): void {
   list.appendChild(buildButton(onClick, logoUrl));
 
   // Mirror Twitter's compact (icon-only) mode.
-  // Observe document.documentElement — the nav element itself may not resize.
+  // Observe document.documentElement - the nav element itself may not resize.
   syncCompact();
   compactObserver?.disconnect();
   compactObserver = new ResizeObserver(() => syncCompact());

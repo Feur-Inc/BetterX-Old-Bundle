@@ -1,4 +1,4 @@
-// ─── Main-world bridge — extension side ───────────────────────────────────────
+// ─── Main-world bridge - extension side ───────────────────────────────────────
 // Registers the CustomEvent transport with @betterx/core so that any plugin
 // calling `callMainWorld()` or `dispatchReactState()` is routed through the
 // main-world shim (main-world.ts) automatically.

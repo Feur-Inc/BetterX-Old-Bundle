@@ -78,7 +78,7 @@ export async function applyAccentColor(): Promise<void> {
 }
 
 /**
- * Watch for accent color changes. Polls IndexedDB every 5 seconds — X.com
+ * Watch for accent color changes. Polls IndexedDB every 5 seconds - X.com
  * writes to IndexedDB when the user changes their color, so MutationObserver
  * on html attributes won't catch it.
  */

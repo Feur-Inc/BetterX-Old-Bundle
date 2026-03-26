@@ -105,7 +105,7 @@ export default definePlugin({
     document.addEventListener("wheel", magOnWheel, { passive: false });
 
     magObserver = new MutationObserver(() => {
-      // Images are found dynamically — no action needed
+      // Images are found dynamically - no action needed
     });
     magObserver.observe(document.body, { childList: true, subtree: true });
   },

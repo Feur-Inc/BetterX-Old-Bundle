@@ -19,7 +19,7 @@ const sensitiveMediaEnabled = localStorage.getItem("betterx:sensitiveMedia") !==
 /** When true, apply our own CSS blur instead of fully revealing media. */
 const sensitiveMediaBlur = localStorage.getItem("betterx:sensitiveMedia:blur") === "1";
 
-/** Tweet rest_ids that had sensitive flags — used in blur mode to mark articles. */
+/** Tweet rest_ids that had sensitive flags - used in blur mode to mark articles. */
 const sensitiveIds = new Set<string>();
 
 // ─── Sensitive-media stripping ────────────────────────────────────────────────
@@ -92,7 +92,7 @@ if (sensitiveMediaEnabled && sensitiveMediaBlur) {
 }
 
 // ─── JSON.parse patch ─────────────────────────────────────────────────────────
-// Twitter embeds tweet data directly in the SSR HTML — window.fetch is never
+// Twitter embeds tweet data directly in the SSR HTML - window.fetch is never
 // called for it. Patching JSON.parse catches both inline script data and any
 // manually-parsed fetch/XHR responses regardless of how the data arrives.
 
@@ -142,7 +142,7 @@ const _fetch = window.fetch.bind(window);
     ) return res;
 
     // JSON.parse is already patched above so stripSensitiveFlags runs
-    // automatically — but we still return a clean response so the body
+    // automatically - but we still return a clean response so the body
     // isn't consumed twice.
     const data: unknown = JSON.parse(text);
     const headers = new Headers(res.headers);

@@ -4,7 +4,7 @@
 //
 // On the extension the implementation routes through CustomEvents to the
 // main-world shim (main-world.ts). On desktop there is no shim, so calls
-// reject immediately — callers should handle that gracefully.
+// reject immediately - callers should handle that gracefully.
 //
 // Usage in a plugin:
 //
@@ -18,7 +18,7 @@ let _bridge: BridgeFn | undefined;
 
 /**
  * Register the platform's main-world bridge implementation.
- * Called once by the platform layer — plugins must not call this.
+ * Called once by the platform layer - plugins must not call this.
  */
 export function setMainWorldBridge(fn: BridgeFn): void {
   _bridge = fn;

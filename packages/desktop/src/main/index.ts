@@ -47,7 +47,7 @@ if (process.platform === "linux") {
     app.commandLine.appendSwitch("ozone-platform", "wayland");
     app.commandLine.appendSwitch("enable-features", "WaylandWindowDecorations");
   }
-  // Disable GBM video buffer allocation — YUV_420_BIPLANAR SCANOUT not
+  // Disable GBM video buffer allocation - YUV_420_BIPLANAR SCANOUT not
   // supported on many Mesa drivers, causing a spam of GPU errors.
   app.commandLine.appendSwitch("disable-gpu-memory-buffer-video-frames");
   app.commandLine.appendSwitch("disable-features", "UseChromeOSDirectVideoDecoder,VaapiVideoDecoder");
@@ -107,7 +107,7 @@ app.whenReady().then(async () => {
   // Set up CSP
   setupCSP();
 
-  // Configure bundle path — fall back to local build if stored path no longer exists
+  // Configure bundle path - fall back to local build if stored path no longer exists
   const storedPath = getSetting("bundlePath");
   const bundlePath = (storedPath && existsSync(storedPath)) ? storedPath : BUNDLE_PATH;
   setSetting("bundlePath", bundlePath);
@@ -283,7 +283,7 @@ app.whenReady().then(async () => {
 
   // ─── Bundle hot-reload ──────────────────────────────────────────────────────
   // Watch the bundle directory for changes (Vite does atomic renames, so
-  // watching the file itself is unreliable — watch the dir instead).
+  // watching the file itself is unreliable - watch the dir instead).
   let reloadTimer: ReturnType<typeof setTimeout> | null = null;
   try {
     watch(dirname(bundlePath), (_, filename) => {
@@ -293,7 +293,7 @@ app.whenReady().then(async () => {
         reloadTimer = null;
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.reload();
-          logger.info("[BetterX] Bundle changed — reloading page");
+          logger.info("[BetterX] Bundle changed - reloading page");
         }
       }, 300);
     });

@@ -35,7 +35,7 @@ export async function destroyDiscordRPC(): Promise<void> {
   try {
     await client.destroy();
   } catch {
-    // ignore — process is likely exiting
+    // ignore - process is likely exiting
   }
   client = null;
   connected = false;
@@ -48,7 +48,7 @@ export async function updateActivity(details: string, state: string): Promise<vo
   const d = clamp(details, 128);
   const s = clamp(state, 128);
 
-  // Dedup — don't send identical updates
+  // Dedup - don't send identical updates
   if (d === lastDetails && s === lastState) return;
   lastDetails = d;
   lastState = s;
