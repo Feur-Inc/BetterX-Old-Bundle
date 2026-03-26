@@ -7,7 +7,10 @@ services:
       - "4000:4000"
     volumes:
       - ./data:/data
-    env_file:
-      - ./packages/cloud-sync/.env
-      - ./packages/cloud-sync/.env.local
+    environment:
+      - TWITTER_CLIENT_ID=${TWITTER_CLIENT_ID}
+      - TWITTER_CLIENT_SECRET=${TWITTER_CLIENT_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - BASE_URL=${BASE_URL}
+      - PORT=${PORT:-4000}
     restart: unless-stopped
