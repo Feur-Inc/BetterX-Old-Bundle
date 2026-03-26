@@ -101,7 +101,7 @@ app.get("/auth/callback", async (c) => {
     .setExpirationTime("30d")
     .sign(JWT_SECRET);
 
-  setCookie(c, "bx_session", token, { httpOnly: true, maxAge: 30 * 24 * 3600 });
+  setCookie(c, "bx_session", token, { httpOnly: true, maxAge: 30 * 24 * 3600, sameSite: "None", secure: true });
   return c.redirect("/");
 });
 
