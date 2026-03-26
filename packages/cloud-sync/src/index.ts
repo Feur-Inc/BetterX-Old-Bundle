@@ -84,6 +84,11 @@ app.get("/auth/callback", async (c) => {
   const userData: any = await userRes.json();
   const twitterUser = userData.data;
 
+  if (!twitterUser?.id) {
+    console.error("Twitter user fetch failed:", JSON.stringify(userData));
+    return c.json({ error: "Failed to fetch Twitter user", details: userData }, 500);
+  }
+
   // Sync with DB
   db.run("INSERT OR IGNORE INTO users (id, twitter_id, username) VALUES (?, ?, ?)", [
     twitterUser.id,
