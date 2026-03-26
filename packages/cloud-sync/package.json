@@ -9,7 +9,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@betterx/core": "*",
     "hono": "^4.6.14",
     "jose": "^5.9.6"
   },
