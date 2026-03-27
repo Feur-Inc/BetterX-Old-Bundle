@@ -134,7 +134,7 @@ function platformLabel(platform: string): string {
 }
 
 // Renders authors + settings into an arbitrary container (reused by inline body and detail panel)
-function renderPluginBody(container: HTMLElement, plugin: Plugin, ctx: BetterXContext): void {
+export function renderPluginBody(container: HTMLElement, plugin: Plugin, ctx: BetterXContext): void {
   if (plugin.authors && plugin.authors.length > 0) {
     const authors = document.createElement("div");
     authors.className = "betterx-plugin-authors";

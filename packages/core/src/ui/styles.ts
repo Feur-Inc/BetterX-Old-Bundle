@@ -1298,6 +1298,53 @@ export const BETTERX_STYLES = `
   color: var(--betterx-textColorSecondary);
   padding: 8px 0;
 }
+/* === Plugin Detail Modal (from contributor modal) === */
+.bx-pd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(3px);
+  animation: betterxFadeIn 0.15s ease;
+}
+.bx-pd-modal {
+  font-family: "TwitterChirp", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--betterx-modalBg);
+  border: 1px solid var(--betterx-borderColor);
+  border-radius: 16px;
+  width: clamp(820px, 75vw, 1280px);
+  max-width: calc(100vw - 32px);
+  height: clamp(600px, 80vh, 960px);
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: betterxSlideUp 0.2s ease;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+}
+.bx-pd-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--betterx-borderColor);
+  flex-shrink: 0;
+}
+.bx-pd-header .betterx-detail-back { padding: 0; }
+.bx-pd-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--betterx-borderColor) transparent;
+}
+.bx-pd-body::-webkit-scrollbar { width: 6px; }
+.bx-pd-body::-webkit-scrollbar-track { background: transparent; }
+.bx-pd-body::-webkit-scrollbar-thumb { background: var(--betterx-borderColor); border-radius: 3px; }
 .bx-cm-footer {
   display: flex;
   gap: 10px;

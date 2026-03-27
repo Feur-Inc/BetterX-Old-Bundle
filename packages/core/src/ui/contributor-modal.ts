@@ -1,11 +1,17 @@
 import type { BetterXContext } from "./tab-registry.js";
 import type { Developer, Plugin } from "../types/plugin.js";
 import { getSettingsModal } from "./modal.js";
-import { openPluginDetail } from "./tabs/plugins-tab.js";
+import { renderPluginBody } from "./tabs/plugins-tab.js";
 
 // ─── Contributor Modal ────────────────────────────────────────────────────────
 
 const OVERLAY_ID = "bx-contributor-overlay";
+
+function escHtml(str: string): string {
+  const d = document.createElement("div");
+  d.textContent = str;
+  return d.innerHTML;
+}
 
 function platformLabel(platform: string): string {
   if (platform === "desktop") return "Desktop only";
@@ -115,11 +121,10 @@ export function openContributorModal(dev: Developer, ctx: BetterXContext): void 
     overlay.remove();
     document.removeEventListener("keydown", onKey);
     unsubClose?.();
-    bxModal?.setCloseInterceptor(null);
     if (restoreBx) bxModal?.show();
   };
 
-  // If BetterX modal is explicitly closed (e.g. close button) while contributor is open → remove contributor too
+  // If BetterX modal closes while contributor modal is open → remove contributor too
   unsubClose = bxModal?.onClose(() => {
     overlay.remove();
     document.removeEventListener("keydown", onKey);
@@ -151,42 +156,122 @@ export function openContributorModal(dev: Developer, ctx: BetterXContext): void 
   }
 
   const headerInfo = document.createElement("div");
-  const nameEl = document.createElement("div");
-  nameEl.className = "bx-cm-name";
-  nameEl.textContent = dev.name;
+  const devNameEl = document.createElement("div");
+  devNameEl.className = "bx-cm-name";
+  devNameEl.textContent = dev.name;
   const handleEl = document.createElement("div");
   handleEl.className = "bx-cm-handle";
   handleEl.textContent = `@${dev.handle}`;
-  headerInfo.append(nameEl, handleEl);
+  headerInfo.append(devNameEl, handleEl);
   header.append(avatar, headerInfo);
 
-  // ── Plugins list ──────────────────────────────────────────────────────────
+  // ── Plugins section ───────────────────────────────────────────────────────
   const pluginsSection = document.createElement("div");
   pluginsSection.className = "bx-cm-section";
 
   const sectionLabel = document.createElement("div");
   sectionLabel.className = "bx-cm-section-label";
   sectionLabel.textContent = "Plugins";
-  pluginsSection.appendChild(sectionLabel);
 
   const pluginList = document.createElement("div");
   pluginList.className = "bx-cm-plugin-list";
 
+  pluginsSection.append(sectionLabel, pluginList);
+
+  const showDetail = (plugin: Plugin) => {
+    const pdOverlay = document.createElement("div");
+    pdOverlay.className = "bx-pd-overlay";
+
+    const pdModal = document.createElement("div");
+    pdModal.className = "bx-pd-modal";
+
+    // Header
+    const pdHeader = document.createElement("div");
+    pdHeader.className = "bx-pd-header";
+
+    const backBtn = document.createElement("button");
+    backBtn.className = "betterx-detail-back";
+    backBtn.innerHTML = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3L5 8l5 5"/></svg> ${escHtml(dev.name)}`;
+    backBtn.addEventListener("click", () => pdOverlay.remove());
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "betterx-modal-close";
+    closeBtn.setAttribute("aria-label", "Close");
+    closeBtn.textContent = "✕";
+    closeBtn.addEventListener("click", () => pdOverlay.remove());
+
+    pdHeader.append(backBtn, closeBtn);
+
+    // Hero
+    const hero = document.createElement("div");
+    hero.className = "betterx-detail-hero";
+
+    const heroTop = document.createElement("div");
+    heroTop.className = "betterx-detail-hero-top";
+
+    const pluginNameEl = document.createElement("div");
+    pluginNameEl.className = "betterx-detail-name";
+    pluginNameEl.textContent = plugin.name;
+
+    if (plugin.unavailable && plugin.platform) {
+      const badge = document.createElement("span");
+      badge.className = "betterx-platform-badge";
+      badge.textContent = platformLabel(plugin.platform);
+      pluginNameEl.appendChild(badge);
+    }
+
+    if (plugin.isLibrary) {
+      const autoBadge = document.createElement("span");
+      autoBadge.className = plugin.enabled ? "betterx-auto-badge betterx-auto-badge-on" : "betterx-auto-badge betterx-auto-badge-off";
+      autoBadge.textContent = plugin.enabled ? "Active" : "Standby";
+      heroTop.append(pluginNameEl, autoBadge);
+    } else if (plugin.isMeta) {
+      heroTop.append(pluginNameEl);
+    } else {
+      const toggle = document.createElement("label");
+      toggle.className = "betterx-toggle";
+      const toggleInput = document.createElement("input");
+      toggleInput.type = "checkbox";
+      toggleInput.checked = plugin.enabled;
+      toggleInput.disabled = !!plugin.unavailable;
+      const toggleSlider = document.createElement("span");
+      toggleSlider.className = "betterx-toggle-slider";
+      toggle.append(toggleInput, toggleSlider);
+      toggleInput.addEventListener("change", () => {
+        ctx.pluginManager.toggle(plugin.name).catch(console.error);
+      });
+      heroTop.append(pluginNameEl, toggle);
+    }
+    hero.appendChild(heroTop);
+
+    if (plugin.description) {
+      const desc = document.createElement("div");
+      desc.className = "betterx-detail-description";
+      desc.textContent = plugin.description;
+      hero.appendChild(desc);
+    }
+
+    // Body (hero + content together so padding is consistent)
+    const body = document.createElement("div");
+    body.className = "bx-pd-body";
+    body.appendChild(hero);
+    renderPluginBody(body, plugin, ctx);
+
+    pdModal.append(pdHeader, body);
+    pdOverlay.appendChild(pdModal);
+    document.body.appendChild(pdOverlay);
+
+    pdOverlay.addEventListener("click", (e) => { if (e.target === pdOverlay) pdOverlay.remove(); });
+    const onPdKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { pdOverlay.remove(); document.removeEventListener("keydown", onPdKey); }
+    };
+    document.addEventListener("keydown", onPdKey);
+    pdOverlay.addEventListener("remove", () => document.removeEventListener("keydown", onPdKey));
+  };
+
   if (plugins.length > 0) {
     for (const plugin of plugins) {
-      const card = buildPluginCard(plugin, ctx, (p) => {
-        const goBack = () => {
-          bxModal?.setCloseInterceptor(null);
-          bxModal?.hide();
-          overlay.style.display = "";
-        };
-        // Intercept overlay-click/Escape on bxModal so it goes back here instead of closing
-        bxModal?.setCloseInterceptor(() => { goBack(); return false; });
-        overlay.style.display = "none";
-        bxModal?.show();
-        bxModal?.activateTab("plugins");
-        openPluginDetail(p, goBack);
-      });
+      const card = buildPluginCard(plugin, ctx, showDetail);
       pluginList.appendChild(card);
     }
   } else {
@@ -195,8 +280,6 @@ export function openContributorModal(dev: Developer, ctx: BetterXContext): void 
     empty.textContent = "No plugins found.";
     pluginList.appendChild(empty);
   }
-
-  pluginsSection.appendChild(pluginList);
 
   // ── Footer ────────────────────────────────────────────────────────────────
   const footer = document.createElement("div");
