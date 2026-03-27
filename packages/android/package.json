@@ -1,0 +1,20 @@
+{
+  "name": "@betterx/android",
+  "version": "3.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:web": "bun scripts/build-web.ts",
+    "build:apk": "./gradlew assembleDebug",
+    "build": "./gradlew assembleDebug",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@betterx/core": "*",
+    "@betterx/plugins": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vite": "^6.0.0"
+  }
+}

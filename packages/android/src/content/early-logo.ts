@@ -3,7 +3,7 @@
 // 1. Inject active theme CSS before the page paints (no FOUC)
 // 2. Replace the X loading screen logo before it's visible
 
-import browser from "webextension-polyfill";
+import browser from "../platform/browser.js";
 
 // ─── CSS Processor (inlined from core) ──────────────────────────────────────
 const ANIMATION_PROPS = new Set([

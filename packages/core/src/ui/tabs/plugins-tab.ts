@@ -123,6 +123,7 @@ function renderOptions(container: HTMLElement, plugin: Plugin, ctx: BetterXConte
 function platformLabel(platform: string): string {
   if (platform === "desktop") return "Desktop only";
   if (platform === "extension") return "Extension only";
+  if (platform === "android") return "Android only";
   return platform;
 }
 
@@ -212,10 +213,12 @@ function renderPlugin(plugin: Plugin, ctx: BetterXContext): HTMLElement {
       body.appendChild(authors);
     }
 
+    if (plugin.options && Object.keys(plugin.options).length > 0) {
+      renderOptions(body, plugin, ctx);
+    }
+
     if (plugin.renderSettings) {
       plugin.renderSettings(body);
-    } else {
-      renderOptions(body, plugin, ctx);
     }
 
     item.appendChild(body);

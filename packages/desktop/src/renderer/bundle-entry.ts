@@ -40,6 +40,8 @@ async function init(): Promise<void> {
   // 1. Inject base styles
   injectStyle(BETTERX_STYLES, "betterx-styles");
 
+  const electronAPI = window.electronAPI;
+
   // 2. Storage
   const storage = new DesktopStorage();
 
@@ -59,7 +61,8 @@ async function init(): Promise<void> {
   // Wire up proxy fetch through Electron's main process (bypasses X's CSP)
   setFetchProxy(async (url: string, init?: ProxyFetchInit) => {
     const u = new URL(url);
-    return window.electronAPI!.cloudFetch(u.origin, u.pathname + u.search, init);
+    if (!electronAPI) throw new Error("Electron API unavailable");
+    return electronAPI.cloudFetch(u.origin, u.pathname + u.search, init);
   });
 
   // 7. Register tabs
@@ -71,9 +74,12 @@ async function init(): Promise<void> {
     storage,
     logoUrl,
     platform: "desktop",
-    openThemesFolder: () => { window.electronAPI?.themes.openFolder(); },
-    openOAuth: (url: string) => window.electronAPI!.openOAuth(url),
-    onOAuthComplete: (cb: () => void) => window.electronAPI!.onOAuthComplete(cb),
+    openThemesFolder: () => { electronAPI?.themes.openFolder(); },
+    openOAuth: (url: string) => {
+      if (!electronAPI) throw new Error("Electron API unavailable");
+      return electronAPI.openOAuth(url);
+    },
+    onOAuthComplete: (cb: () => void) => electronAPI?.onOAuthComplete(cb) ?? (() => {}),
   };
   TabRegistry.register(PluginsTab);
   TabRegistry.register(ThemesTab);

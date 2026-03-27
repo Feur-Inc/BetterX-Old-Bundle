@@ -112,6 +112,9 @@ export const BETTERX_STYLES = `
   border-bottom: 1px solid var(--betterx-borderColor);
   flex-shrink: 0;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
 .betterx-tabs::-webkit-scrollbar { display: none; }

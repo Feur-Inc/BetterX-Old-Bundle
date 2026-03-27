@@ -5,6 +5,11 @@ node_modules/
 dist/
 release/
 .crx/
+packages/android/app/src/main/assets/betterx/
+packages/android/app/build/
+packages/android/build/
+packages/android/.gradle/
+packages/android/local.properties
 
 # Vite / TypeScript cache
 *.tsbuildinfo
