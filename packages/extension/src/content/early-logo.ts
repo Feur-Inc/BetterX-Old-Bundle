@@ -54,7 +54,6 @@ async function injectThemes(): Promise<void> {
   const cssResult = await browser.storage.local.get(keys);
   const root = document.head || document.documentElement;
   for (const id of state.active) {
-    if (document.getElementById(STYLE_PREFIX + id)) continue;
     const css = cssResult[THEME_CSS_PREFIX + id] as string | undefined;
     if (!css) continue;
     const style = document.createElement("style");

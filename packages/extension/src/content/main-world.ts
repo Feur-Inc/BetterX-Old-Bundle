@@ -27,23 +27,22 @@ const sensitiveIds = new Set<string>();
 /** Recursively strip fields that cause Twitter to gate media behind age checks. */
 function stripSensitiveFlags(obj: unknown): void {
   if (!obj || typeof obj !== "object") return;
-  if (Array.isArray(obj)) {
-    obj.forEach(stripSensitiveFlags);
-    return;
-  }
+  if (Array.isArray(obj)) { obj.forEach(stripSensitiveFlags); return; }
   const o = obj as Record<string, unknown>;
 
   // In blur mode, record tweet IDs that were sensitive before stripping.
   if (sensitiveMediaBlur) {
-    if (o.__typename === "TweetWithVisibilityResults" && o.tweet && typeof o.tweet === "object") {
+    if (
+      o.__typename === "TweetWithVisibilityResults" &&
+      o.tweet && typeof o.tweet === "object"
+    ) {
       const inner = o.tweet as Record<string, unknown>;
       if (typeof inner.rest_id === "string") sensitiveIds.add(inner.rest_id);
     }
     // possibly_sensitive lives in the `legacy` sub-object, rest_id is at tweet root
     if (
       typeof o.rest_id === "string" &&
-      o.legacy &&
-      typeof o.legacy === "object" &&
+      o.legacy && typeof o.legacy === "object" &&
       (o.legacy as Record<string, unknown>).possibly_sensitive === true
     ) {
       sensitiveIds.add(o.rest_id);
@@ -55,8 +54,7 @@ function stripSensitiveFlags(obj: unknown): void {
   if (
     o.__typename === "TweetWithVisibilityResults" &&
     o.mediaVisibilityResults &&
-    o.tweet &&
-    typeof o.tweet === "object"
+    o.tweet && typeof o.tweet === "object"
   ) {
     const inner = o.tweet as Record<string, unknown>;
     for (const [k, v] of Object.entries(inner)) o[k] = v;
@@ -66,12 +64,12 @@ function stripSensitiveFlags(obj: unknown): void {
     delete o.limitedActionResults;
   }
 
-  if ("possibly_sensitive" in o) o.possibly_sensitive = false;
+  if ("possibly_sensitive"          in o) o.possibly_sensitive          = false;
   if ("possibly_sensitive_editable" in o) o.possibly_sensitive_editable = false;
-  if ("sensitive_media_warning" in o) delete o.sensitive_media_warning;
-  if ("mediaVisibilityResults" in o) delete o.mediaVisibilityResults;
-  if ("interstitial" in o) delete o.interstitial;
-  if ("age_restriction" in o) delete o.age_restriction;
+  if ("sensitive_media_warning"     in o) delete o.sensitive_media_warning;
+  if ("mediaVisibilityResults"      in o) delete o.mediaVisibilityResults;
+  if ("interstitial"                in o) delete o.interstitial;
+  if ("age_restriction"             in o) delete o.age_restriction;
   for (const v of Object.values(o)) stripSensitiveFlags(v);
 }
 
@@ -81,22 +79,16 @@ function stripSensitiveFlags(obj: unknown): void {
 
 if (sensitiveMediaEnabled && sensitiveMediaBlur) {
   const markArticles = () => {
-    for (const article of document.querySelectorAll(
-      "article:not([data-betterx-sensitive-checked])"
-    )) {
+    for (const article of document.querySelectorAll("article:not([data-betterx-sensitive-checked])")) {
       article.setAttribute("data-betterx-sensitive-checked", "1");
       const link = article.querySelector('a[href*="/status/"] time')?.closest("a");
       const match = link?.getAttribute("href")?.match(/\/status\/(\d+)/);
-      const restId = match?.[1];
-      if (restId && sensitiveIds.has(restId)) {
+      if (match && sensitiveIds.has(match[1])) {
         article.setAttribute("data-betterx-sensitive", "1");
       }
     }
   };
-  new MutationObserver(markArticles).observe(document.documentElement, {
-    childList: true,
-    subtree: true,
-  });
+  new MutationObserver(markArticles).observe(document.documentElement, { childList: true, subtree: true });
 }
 
 // ─── JSON.parse patch ─────────────────────────────────────────────────────────
@@ -105,10 +97,10 @@ if (sensitiveMediaEnabled && sensitiveMediaBlur) {
 // manually-parsed fetch/XHR responses regardless of how the data arrives.
 
 const _JSONparse = JSON.parse.bind(JSON);
-(JSON as { parse: typeof JSON.parse }).parse = (
+(JSON as { parse: typeof JSON.parse }).parse = function (
   text: string,
-  reviver?: Parameters<typeof JSON.parse>[1]
-): unknown => {
+  reviver?: Parameters<typeof JSON.parse>[1],
+): unknown {
   const result: unknown = _JSONparse(text, reviver);
   if (
     sensitiveMediaEnabled &&
@@ -130,8 +122,9 @@ const GRAPHQL_PATH = "/i/api/graphql/";
 
 const _fetch = window.fetch.bind(window);
 (window as typeof window & { fetch: typeof fetch }).fetch = async (input, init) => {
-  const url =
-    typeof input === "string" ? input : input instanceof URL ? input.href : (input as Request).url;
+  const url = typeof input === "string" ? input
+    : input instanceof URL ? input.href
+    : (input as Request).url;
 
   const res = await _fetch(input, init);
 
@@ -146,8 +139,7 @@ const _fetch = window.fetch.bind(window);
       !text.includes("mediaVisibilityResults") &&
       !text.includes("interstitial") &&
       !text.includes("age_restriction")
-    )
-      return res;
+    ) return res;
 
     // JSON.parse is already patched above so stripSensitiveFlags runs
     // automatically - but we still return a clean response so the body
@@ -180,20 +172,15 @@ type HookNode = {
 
 function getFiber(el: Element): Fiber | null {
   const key = Object.keys(el).find((k) => k.startsWith("__reactFiber$"));
-  return key ? ((el as unknown as Record<string, Fiber>)[key] ?? null) : null;
+  return key ? (el as unknown as Record<string, Fiber>)[key] : null;
 }
 
 /**
  * Walk the fiber tree upward from `startNode`, trying to dispatch a state
  * update for any boolean hook whose current value equals `from`.
  */
-function walkAndDispatch(
-  startNode: Fiber | null | undefined,
-  from: boolean,
-  to: boolean,
-  maxHops: number
-): boolean {
-  let node: Fiber | null | undefined = startNode;
+function walkAndDispatch(startNode: Fiber | undefined, from: boolean, to: boolean, maxHops: number): boolean {
+  let node = startNode;
   let hops = 0;
   while (node && hops < maxHops) {
     let hook = node.memoizedState;
@@ -204,7 +191,7 @@ function walkAndDispatch(
       }
       hook = hook.next;
     }
-    node = node.return ?? null;
+    node = node.return;
     hops++;
   }
   return false;
@@ -215,15 +202,14 @@ function walkAndDispatch(
  * dispatch the opposite value.
  */
 function dispatchReactState(el: Element, from: unknown, to: unknown): boolean {
-  const btnFiber = getFiber(el)?.return ?? null;
+  const btnFiber = getFiber(el)?.return;
   const article = el.closest("article");
-  const articleFiber = article ? (getFiber(article)?.return ?? null) : null;
+  const articleFiber = article ? getFiber(article)?.return : undefined;
 
   if (walkAndDispatch(btnFiber, from as boolean, to as boolean, 30)) return true;
   if (walkAndDispatch(articleFiber, from as boolean, to as boolean, 30)) return true;
 
-  const fromInv = !from as boolean,
-    toInv = !to as boolean;
+  const fromInv = !from as boolean, toInv = !to as boolean;
   if (walkAndDispatch(btnFiber, fromInv, toInv, 30)) return true;
   if (walkAndDispatch(articleFiber, fromInv, toInv, 30)) return true;
 
