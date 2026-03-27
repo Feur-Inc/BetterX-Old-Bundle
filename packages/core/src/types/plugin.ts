@@ -47,7 +47,7 @@ export type Developer = {
 
 // ─── Plugin Definition ────────────────────────────────────────────────────────
 
-export type PluginPlatform = "desktop" | "extension";
+export type PluginPlatform = "desktop" | "extension" | "android";
 
 export type PluginDefinition<O extends PluginOptionDefs = Record<string, never>> = {
   name: string;
@@ -56,6 +56,8 @@ export type PluginDefinition<O extends PluginOptionDefs = Record<string, never>>
   version?: string;
   options?: O;
   requiresRestart?: boolean;
+  /** If true, the plugin runs but is hidden from the UI. */
+  hidden?: boolean;
   /** Restrict this plugin to a specific platform. Omit for all platforms. */
   platform?: PluginPlatform;
   start: (this: Plugin<O>) => void;

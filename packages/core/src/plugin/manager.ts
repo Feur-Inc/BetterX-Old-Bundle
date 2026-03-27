@@ -1,4 +1,3 @@
-import type { IStorage } from "../types/storage.js";
 import type {
   Plugin,
   PluginDefinition,
@@ -6,8 +5,9 @@ import type {
   PluginPlatform,
   PluginStorageData,
 } from "../types/plugin.js";
-import { logger } from "../utils/logger.js";
+import type { IStorage } from "../types/storage.js";
 import { notifications } from "../ui/notification.js";
+import { logger } from "../utils/logger.js";
 
 // ─── Plugin Manager ───────────────────────────────────────────────────────────
 
@@ -28,12 +28,16 @@ export class PluginManager {
    * generic that is invariant due to the typed `this` parameter.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async initialize(definitions: ReadonlyArray<PluginDefinition<any>>, platform?: PluginPlatform): Promise<void> {
+  async initialize(
+    definitions: ReadonlyArray<PluginDefinition<any>>,
+    platform?: PluginPlatform
+  ): Promise<void> {
     const saved = await this.storage.getPluginStates();
 
     for (const def of definitions) {
       const incompatible = !!(def.platform && platform && def.platform !== platform);
       const plugin = this.hydratePlugin(def, saved[def.name]);
+      plugin.hidden = !!def.hidden;
 
       if (incompatible) {
         plugin.unavailable = true;
@@ -85,7 +89,7 @@ export class PluginManager {
   }
 
   getAll(): Plugin[] {
-    return Array.from(this.plugins.values());
+    return Array.from(this.plugins.values()).filter((plugin) => !plugin.hidden);
   }
 
   get(name: string): Plugin | undefined {
@@ -107,18 +111,15 @@ export class PluginManager {
     await this.persist();
 
     if (plugin.requiresRestart) {
-      notifications.showWarning(
-        `"${plugin.name}" requires a page refresh to fully apply.`,
-        {
-          duration: 0,
-          actions: [
-            {
-              label: "Refresh now",
-              callback: () => location.reload(),
-            },
-          ],
-        },
-      );
+      notifications.showWarning(`"${plugin.name}" requires a page refresh to fully apply.`, {
+        duration: 0,
+        actions: [
+          {
+            label: "Refresh now",
+            callback: () => location.reload(),
+          },
+        ],
+      });
     }
   }
 

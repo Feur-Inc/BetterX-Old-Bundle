@@ -12,8 +12,8 @@ export type BetterXContext = {
   storage: IStorage;
   /** URL of the BetterX logo image - platform-supplied (betterx:// or chrome-extension://) */
   logoUrl: string;
-  /** Current platform ('desktop' or 'extension') */
-  platform: "desktop" | "extension";
+  /** Current platform ('desktop' | 'extension' | 'android') */
+  platform: "desktop" | "extension" | "android";
   /** Opens the themes folder in the system file manager (desktop only). */
   openThemesFolder?: () => void;
   /** Opens an OAuth login window/tab. */

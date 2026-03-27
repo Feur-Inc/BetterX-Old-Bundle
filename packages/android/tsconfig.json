@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@betterx/core": ["../core/src/index.ts"],
+      "@betterx/plugins": ["../plugins/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}
