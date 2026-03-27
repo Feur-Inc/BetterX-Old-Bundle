@@ -77,6 +77,17 @@ async function init(): Promise<void> {
     }
   });
 
+  // OAuth completion callbacks — fired when the background SW closes the OAuth tab
+  const oauthCallbacks: Array<() => void> = [];
+  browser.runtime.onMessage.addListener((message) => {
+    const msg = message as { type?: string };
+    if (msg.type === "OAUTH_COMPLETE") {
+      oauthCallbacks.forEach((cb) => cb());
+      return Promise.resolve({ ok: true });
+    }
+    return undefined;
+  });
+
   TabRegistry.register(PluginsTab);
   TabRegistry.register(ThemesTab);
   TabRegistry.register(CloudTab);
@@ -91,6 +102,16 @@ async function init(): Promise<void> {
     logoUrl,
     platform: "extension",
     proxyImage: proxyImageFn,
+    openOAuth: async (url: string) => {
+      await browser.runtime.sendMessage({ type: "OPEN_OAUTH", url });
+    },
+    onOAuthComplete: (callback: () => void) => {
+      oauthCallbacks.push(callback);
+      return () => {
+        const i = oauthCallbacks.indexOf(callback);
+        if (i !== -1) oauthCallbacks.splice(i, 1);
+      };
+    },
   };
 
   // 8. Create modal

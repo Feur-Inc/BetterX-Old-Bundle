@@ -316,6 +316,23 @@ export const BETTERX_STYLES = `
   font-size: 14px;
   color: var(--betterx-textColor);
 }
+.betterx-cloud-user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.betterx-cloud-pfp {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.betterx-cloud-username {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--betterx-textColor);
+}
 .betterx-cloud-actions {
   display: flex;
   gap: 12px;

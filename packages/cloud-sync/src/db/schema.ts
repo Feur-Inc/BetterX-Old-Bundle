@@ -10,9 +10,15 @@ db.run(`
     id TEXT PRIMARY KEY,
     twitter_id TEXT UNIQUE,
     username TEXT,
+    profile_image_url TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )
 `);
+
+// Migration: add profile_image_url to existing databases
+try {
+  db.run("ALTER TABLE users ADD COLUMN profile_image_url TEXT");
+} catch { /* column already exists */ }
 
 db.run(`
   CREATE TABLE IF NOT EXISTS configs (

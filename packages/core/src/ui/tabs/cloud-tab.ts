@@ -81,17 +81,22 @@ async function refreshStatus(container: HTMLElement, ctx: BetterXContext) {
   const statusVal = container.querySelector("#cloud-status") as HTMLElement;
   const loginBtn = container.querySelector("#cloud-login-btn") as HTMLElement;
   const logoutBtn = container.querySelector("#cloud-logout-btn") as HTMLElement;
+  const userInfo = container.querySelector("#cloud-user-info") as HTMLElement;
+  const userPfp = container.querySelector("#cloud-user-pfp") as HTMLImageElement;
+  const userName = container.querySelector("#cloud-user-name") as HTMLElement;
   const serverInput = container.querySelector("#cloud-server-url") as HTMLInputElement;
 
   const server = serverInput?.value.replace(/\/+$/, "") || localStorage.getItem("bx_cloud_server") || DEFAULT_SERVER;
 
-  if (!server) {
-    statusVal.textContent = "Not Configured";
-    statusVal.style.color = "var(--betterx-textColorSecondary)";
+  const setDisconnected = (label: string) => {
+    statusVal.textContent = label;
+    statusVal.style.color = label === "Not logged in" ? "var(--betterx-danger)" : "var(--betterx-textColorSecondary)";
     loginBtn.style.display = "block";
     logoutBtn.style.display = "none";
-    return;
-  }
+    userInfo.style.display = "none";
+  };
+
+  if (!server) { setDisconnected("Not Configured"); return; }
 
   try {
     const res = await proxyFetch(`${server}/api/config`);
@@ -101,17 +106,25 @@ async function refreshStatus(container: HTMLElement, ctx: BetterXContext) {
       statusVal.style.color = "var(--betterx-success)";
       loginBtn.style.display = "none";
       logoutBtn.style.display = "block";
+
+      // Fetch and display user info
+      proxyFetch(`${server}/api/me`).then((meRes) => {
+        const me = meRes.json as { username: string; profile_image_url: string | null } | null;
+        if (!meRes.ok || !me) return;
+        userName.textContent = `@${me.username}`;
+        if (me.profile_image_url) {
+          userPfp.src = me.profile_image_url.replace("_normal", "_bigger");
+          userPfp.style.display = "";
+        } else {
+          userPfp.style.display = "none";
+        }
+        userInfo.style.display = "flex";
+      }).catch(() => {});
     } else {
-      statusVal.textContent = "Not logged in";
-      statusVal.style.color = "var(--betterx-danger)";
-      loginBtn.style.display = "block";
-      logoutBtn.style.display = "none";
+      setDisconnected("Not logged in");
     }
   } catch (e) {
-    statusVal.textContent = "Server Offline";
-    statusVal.style.color = "var(--betterx-textColorSecondary)";
-    loginBtn.style.display = "block";
-    logoutBtn.style.display = "none";
+    setDisconnected("Server Offline");
   }
 }
 
@@ -228,6 +241,8 @@ async function setupEvents(container: HTMLElement, ctx: BetterXContext) {
   });
 }
 
+let _unsubOAuth: (() => void) | null = null;
+
 function init(container: HTMLElement, ctx: BetterXContext): void {
   const savedServer = localStorage.getItem("bx_cloud_server") || DEFAULT_SERVER;
 
@@ -255,6 +270,10 @@ function init(container: HTMLElement, ctx: BetterXContext): void {
         <div class="betterx-cloud-status-info">
           <span class="betterx-status-label">Status:</span>
           <span id="cloud-status" class="betterx-status-value">Checking...</span>
+        </div>
+        <div id="cloud-user-info" style="display:none;" class="betterx-cloud-user-info">
+          <img id="cloud-user-pfp" src="" alt="" class="betterx-cloud-pfp">
+          <span id="cloud-user-name" class="betterx-cloud-username"></span>
         </div>
         <div class="betterx-cloud-actions">
           <button id="cloud-login-btn" class="betterx-button betterx-button-primary" style="display: none;">Login with Twitter</button>
@@ -301,9 +320,9 @@ function init(container: HTMLElement, ctx: BetterXContext): void {
   setupEvents(container, ctx);
   refreshStatus(container, ctx);
 
-  if (ctx.onOAuthComplete) {
-    ctx.onOAuthComplete(() => refreshStatus(container, ctx));
-  }
+  // Replace any previous listener so re-inits don't stack callbacks
+  _unsubOAuth?.();
+  _unsubOAuth = ctx.onOAuthComplete?.(() => refreshStatus(container, ctx)) ?? null;
 }
 
 export const CloudTab: SettingsTab = {
@@ -313,5 +332,9 @@ export const CloudTab: SettingsTab = {
 
   initialize(container: HTMLElement, ctx: BetterXContext): void {
     init(container, ctx);
-  }
+  },
+
+  onActivate(container: HTMLElement, ctx: BetterXContext): void {
+    refreshStatus(container, ctx);
+  },
 };
