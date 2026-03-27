@@ -107,7 +107,7 @@ app.get("/auth/callback", async (c) => {
   if (!data.access_token) return c.json(data, 400);
 
   // Get user info
-  const userRes = await fetch(TWITTER_USER_URL, {
+  const userRes = await fetch(`${TWITTER_USER_URL}?user.fields=profile_image_url`, {
     headers: { Authorization: `Bearer ${data.access_token}` },
   });
   const userData: any = await userRes.json();
@@ -118,12 +118,14 @@ app.get("/auth/callback", async (c) => {
     return c.json({ error: "Failed to fetch Twitter user", details: userData }, 500);
   }
 
-  // Sync with DB
-  db.run("INSERT OR IGNORE INTO users (id, twitter_id, username) VALUES (?, ?, ?)", [
-    twitterUser.id,
-    twitterUser.id,
-    twitterUser.username,
-  ]);
+  // Sync with DB — update username + pfp on re-login
+  db.run(`
+    INSERT INTO users (id, twitter_id, username, profile_image_url)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      username = excluded.username,
+      profile_image_url = excluded.profile_image_url
+  `, [twitterUser.id, twitterUser.id, twitterUser.username, twitterUser.profile_image_url ?? null]);
 
   const token = await new SignJWT({ id: twitterUser.id, username: twitterUser.username })
     .setProtectedHeader({ alg: "HS256" })
@@ -175,6 +177,16 @@ app.get("/api/config", authMiddleware, (c) => {
     plugin_states: JSON.parse(config.plugin_states),
     theme_state: JSON.parse(config.theme_state)
   } : { plugin_states: {}, theme_state: { order: [], active: [] } });
+});
+
+app.get("/api/me", authMiddleware, (c) => {
+  const user = c.get("user") as any;
+  const row = db.query("SELECT username, profile_image_url FROM users WHERE id = ?").get(user.id) as any;
+  return c.json({
+    id: user.id,
+    username: row?.username ?? user.username,
+    profile_image_url: row?.profile_image_url ?? null,
+  });
 });
 
 app.post("/api/config", authMiddleware, async (c) => {

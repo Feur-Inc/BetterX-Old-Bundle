@@ -16,9 +16,9 @@ export type BetterXContext = {
   platform: "desktop" | "extension" | "android";
   /** Opens the themes folder in the system file manager (desktop only). */
   openThemesFolder?: () => void;
-  /** Opens an OAuth login window (desktop only). */
+  /** Opens an OAuth login window/tab. */
   openOAuth?: (url: string) => Promise<void>;
-  /** Register a callback for when OAuth login completes (desktop only). */
+  /** Register a callback for when OAuth login completes. Returns an unsubscribe fn. */
   onOAuthComplete?: (callback: () => void) => () => void;
   /** Proxy an image URL through the platform to bypass page CSP. */
   proxyImage?: (url: string) => Promise<string>;
