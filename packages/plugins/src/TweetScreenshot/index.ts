@@ -119,7 +119,6 @@ export default definePlugin({
         });
       }
     });
-
     screenshotObserver.observe(document.body, { childList: true, subtree: true });
     document
       .querySelectorAll<HTMLElement>('article[data-testid="tweet"]')
