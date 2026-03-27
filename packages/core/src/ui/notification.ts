@@ -22,6 +22,15 @@ export class NotificationManager {
   private container: HTMLElement | null = null;
   private notifications = new Map<string, NotificationState>();
   private counter = 0;
+  private _defaultDuration = 5000;
+
+  setDefaultDuration(ms: number): void {
+    this._defaultDuration = ms > 0 ? ms : 5000;
+  }
+
+  setPosition(pos: "bottom-right" | "bottom-left" | "top-right" | "top-left"): void {
+    this.ensureContainer().dataset.position = pos;
+  }
 
   private ensureContainer(): HTMLElement {
     if (this.container && document.body.contains(this.container)) {
@@ -44,7 +53,7 @@ export class NotificationManager {
       title,
       message,
       type = "info",
-      duration = 5000,
+      duration = this._defaultDuration,
       progress = true,
       actions = [],
       icon = null,

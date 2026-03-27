@@ -1,5 +1,6 @@
 import type { SettingsTab, BetterXContext } from "../tab-registry.js";
 import { Devs, BETTERX_VERSION } from "../../utils/constants.js";
+import { openContributorModal } from "../contributor-modal.js";
 
 // ─── About Tab ────────────────────────────────────────────────────────────────
 
@@ -19,26 +20,6 @@ export const AboutTab: SettingsTab = {
 
     const contributors = Object.values(Devs);
 
-    const contributorCards = contributors
-      .map(
-        (dev) => `
-        <a class="betterx-author-badge"
-           href="https://x.com/${escHtml(dev.handle)}"
-           target="_blank"
-           rel="noopener noreferrer">
-          <img class="betterx-author-avatar"
-               data-proxy-src="https://unavatar.io/twitter/${escHtml(dev.handle)}"
-               alt="${escHtml(dev.name)}"
-               data-fallback="1">
-          <div>
-            <div class="betterx-contributor-name">${escHtml(dev.name)}</div>
-            <div>@${escHtml(dev.handle)}</div>
-          </div>
-        </a>
-      `
-      )
-      .join("");
-
     const html = `
       <div class="betterx-about">
         ${ctx.logoUrl ? `<img class="betterx-about-logo" src="${ctx.logoUrl}" alt="BetterX" />` : ""}
@@ -51,7 +32,7 @@ export const AboutTab: SettingsTab = {
 
         <div class="betterx-about-contributors-section">
           <h3 class="betterx-about-contributors-title">Contributors</h3>
-          <div class="betterx-about-contributors">${contributorCards}</div>
+          <div class="betterx-about-contributors" id="about-contributors"></div>
         </div>
 
         <div class="betterx-about-actions">
@@ -65,15 +46,36 @@ export const AboutTab: SettingsTab = {
     `;
     container.innerHTML = html;
 
-    // Proxy avatar images through background to bypass page CSP, then set src
-    container.querySelectorAll<HTMLImageElement>("img[data-proxy-src]").forEach((img) => {
-      img.addEventListener("error", () => { img.style.display = "none"; });
-      const url = img.dataset.proxySrc!;
-      if (ctx.proxyImage) {
-        ctx.proxyImage(url).then((src) => { img.src = src; }).catch(() => { img.src = url; });
-      } else {
-        img.src = url;
+    // Build contributor cards as buttons that open the contributor modal
+    const contributorsEl = container.querySelector<HTMLElement>("#about-contributors");
+    if (contributorsEl) {
+      for (const dev of contributors) {
+        const btn = document.createElement("button");
+        btn.className = "betterx-author-badge betterx-about-contributor-btn";
+
+        const avatar = document.createElement("img");
+        avatar.className = "betterx-author-avatar betterx-about-contributor-avatar";
+        avatar.alt = dev.name;
+        avatar.addEventListener("error", () => { avatar.style.display = "none"; });
+        const avatarUrl = `https://unavatar.io/twitter/${dev.handle}`;
+        if (ctx.proxyImage) {
+          ctx.proxyImage(avatarUrl).then((src) => { avatar.src = src; }).catch(() => { avatar.src = avatarUrl; });
+        } else {
+          avatar.src = avatarUrl;
+        }
+
+        const info = document.createElement("div");
+        const nameEl = document.createElement("div");
+        nameEl.className = "betterx-contributor-name";
+        nameEl.textContent = dev.name;
+        const handleEl = document.createElement("div");
+        handleEl.textContent = `@${dev.handle}`;
+        info.append(nameEl, handleEl);
+
+        btn.append(avatar, info);
+        btn.addEventListener("click", () => openContributorModal(dev, ctx));
+        contributorsEl.appendChild(btn);
       }
-    });
+    }
   },
 };

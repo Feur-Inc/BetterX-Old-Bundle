@@ -36,6 +36,7 @@ export interface SettingsTab {
 // ─── Tab Registry ─────────────────────────────────────────────────────────────
 
 const registry: SettingsTab[] = [];
+const hiddenTabs = new Set<string>();
 
 export const TabRegistry = {
   register(tab: SettingsTab): void {
@@ -44,8 +45,14 @@ export const TabRegistry = {
     registry.sort((a, b) => a.priority - b.priority);
   },
 
+  /** Hide or show a tab by id. Hidden tabs are excluded from getTabs(). */
+  setTabHidden(id: string, hidden: boolean): void {
+    if (hidden) hiddenTabs.add(id);
+    else hiddenTabs.delete(id);
+  },
+
   getTabs(): SettingsTab[] {
-    return [...registry];
+    return registry.filter((t) => !hiddenTabs.has(t.id));
   },
 
   getTab(id: string): SettingsTab | undefined {

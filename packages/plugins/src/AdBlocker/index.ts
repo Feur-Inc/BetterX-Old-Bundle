@@ -1,4 +1,5 @@
 import { definePlugin, Devs } from "@betterx/core";
+import { DOMObserver } from "../SharedObserver/index.js";
 
 const AD_KEYWORDS = new Set([
   "Ad",
@@ -9,7 +10,7 @@ const AD_KEYWORDS = new Set([
   "Patrocinado",
 ]);
 
-let adObserver: MutationObserver | null = null;
+let adUnsub: (() => void) | null = null;
 
 function processPost(el: HTMLElement): void {
   if (el.dataset["adBlockerProcessed"]) return;
@@ -35,11 +36,12 @@ export default definePlugin({
   name: "AdBlocker",
   description: "Hides sponsored posts and ads from your feed",
   authors: [Devs.Ayaz, Devs.Mopi, Devs.TPM28],
+  dependencies: ["SharedObserver"],
 
   start() {
     document.querySelectorAll<HTMLElement>('[data-testid="cellInnerDiv"]').forEach(processPost);
 
-    adObserver = new MutationObserver((mutations) => {
+    adUnsub = DOMObserver.subscribe((mutations) => {
       const posts = new Set<HTMLElement>();
       for (const mutation of mutations) {
         for (const node of mutation.addedNodes) {
@@ -56,12 +58,10 @@ export default definePlugin({
       }
       posts.forEach(processPost);
     });
-
-    adObserver.observe(document.body, { childList: true, subtree: true });
   },
 
   stop() {
-    adObserver?.disconnect();
-    adObserver = null;
+    adUnsub?.();
+    adUnsub = null;
   },
 });

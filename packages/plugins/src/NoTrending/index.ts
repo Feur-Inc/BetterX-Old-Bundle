@@ -1,4 +1,5 @@
 import { definePlugin, Devs } from "@betterx/core";
+import { DOMObserver } from "../SharedObserver/index.js";
 
 type RemovedElement = {
   element: Element;
@@ -6,7 +7,7 @@ type RemovedElement = {
   nextSibling: Node | null;
 };
 
-let noTrendingObserver: MutationObserver | null = null;
+let noTrendingUnsub: (() => void) | null = null;
 let noTrendingRemoved: RemovedElement[] = [];
 let noTrendingDebounce: ReturnType<typeof setTimeout> | null = null;
 
@@ -14,6 +15,7 @@ export default definePlugin({
   name: "NoTrending",
   description: "Removes trending sections from your feed and explore page",
   authors: [Devs.Mopi],
+  dependencies: ["SharedObserver"],
 
   start() {
     const removeTrending = (): void => {
@@ -50,19 +52,18 @@ export default definePlugin({
     };
 
     removeTrending();
-    noTrendingObserver = new MutationObserver(() => {
+    noTrendingUnsub = DOMObserver.subscribe(() => {
       if (noTrendingDebounce) clearTimeout(noTrendingDebounce);
       noTrendingDebounce = setTimeout(() => {
         noTrendingDebounce = null;
         removeTrending();
       }, 300);
     });
-    noTrendingObserver.observe(document.body, { childList: true, subtree: true });
   },
 
   stop() {
-    noTrendingObserver?.disconnect();
-    noTrendingObserver = null;
+    noTrendingUnsub?.();
+    noTrendingUnsub = null;
     if (noTrendingDebounce) clearTimeout(noTrendingDebounce);
     noTrendingDebounce = null;
 

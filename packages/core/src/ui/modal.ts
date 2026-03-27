@@ -9,15 +9,33 @@ import { BETTERX_VERSION, BETTERX_LOGO_SVG } from "../utils/constants.js";
 const STYLE_ID = "betterx-ui-styles";
 const OVERLAY_ID = "betterx-modal-overlay";
 
+let _instance: SettingsModal | null = null;
+export function getSettingsModal(): SettingsModal | null { return _instance; }
+
 export class SettingsModal {
   private ctx: BetterXContext;
   private overlay: HTMLElement | null = null;
   private activeTabId: string | null = null;
   private initialized = new Set<string>();
+  private _closeCallbacks: (() => void)[] = [];
+  private _closeInterceptor: (() => boolean | void) | null = null;
+
+  setCloseInterceptor(fn: (() => boolean | void) | null): void {
+    this._closeInterceptor = fn;
+  }
 
   constructor(ctx: BetterXContext) {
     this.ctx = ctx;
+    _instance = this;
     injectStyle(BETTERX_STYLES, STYLE_ID);
+  }
+
+  hide(): void { if (this.overlay) this.overlay.style.display = "none"; }
+  show(): void { if (this.overlay) this.overlay.style.display = ""; else this.open(); }
+
+  onClose(cb: () => void): () => void {
+    this._closeCallbacks.push(cb);
+    return () => { this._closeCallbacks = this._closeCallbacks.filter((c) => c !== cb); };
   }
 
   open(): void {
@@ -29,14 +47,21 @@ export class SettingsModal {
     document.body.appendChild(overlay);
     this.overlay = overlay;
 
-    // Close on overlay click
+    // Close on overlay click (interceptor can cancel)
     overlay.addEventListener("click", (e) => {
-      if (e.target === overlay) this.close();
+      if (e.target === overlay) {
+        if (this._closeInterceptor?.() === false) return;
+        this.close();
+      }
     });
 
-    // Close on Escape
+    // Close on Escape (interceptor can cancel)
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        if (this._closeInterceptor?.() === false) {
+          document.removeEventListener("keydown", onKey);
+          return;
+        }
         this.close();
         document.removeEventListener("keydown", onKey);
       }
@@ -67,6 +92,9 @@ export class SettingsModal {
     this.overlay = null;
     this.activeTabId = null;
     this.initialized.clear();
+    const cbs = this._closeCallbacks.slice();
+    this._closeCallbacks = [];
+    for (const cb of cbs) cb();
   }
 
   toggle(): void {
@@ -77,7 +105,7 @@ export class SettingsModal {
     }
   }
 
-  private activateTab(id: string): void {
+  activateTab(id: string): void {
     if (!this.overlay) return;
     const tab = TabRegistry.getTab(id);
     if (!tab) return;

@@ -1,4 +1,5 @@
 import { definePlugin, Devs } from "@betterx/core";
+import { DOMObserver } from "../SharedObserver/index.js";
 
 const SELECTORS = [
   'a[href="/i/premium_sign_up"]',
@@ -15,12 +16,13 @@ const SELECTORS = [
   'a[href="/i/account_analytics"]',
 ];
 
-let observer: MutationObserver | null = null;
+let premiumUnsub: (() => void) | null = null;
 
 export default definePlugin({
   name: "RemovePremium",
   description: "Remove all premium elements from the interface",
   authors: [Devs.TPM28],
+  dependencies: ["SharedObserver"],
 
   start() {
     const removeElements = (): void => {
@@ -54,8 +56,7 @@ export default definePlugin({
 
     const setup = (): void => {
       removeElements();
-      observer = new MutationObserver(removeElements);
-      observer.observe(document.body, { childList: true, subtree: true });
+      premiumUnsub = DOMObserver.subscribe(removeElements);
     };
 
     if (document.readyState === "loading") {
@@ -66,8 +67,8 @@ export default definePlugin({
   },
 
   stop() {
-    observer?.disconnect();
-    observer = null;
+    premiumUnsub?.();
+    premiumUnsub = null;
     for (const selector of SELECTORS) {
       document.querySelectorAll<HTMLElement>(selector).forEach((el) => {
         const parent = el.closest<HTMLElement>(".r-1ifxtd0");

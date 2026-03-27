@@ -1,5 +1,12 @@
 import type { PluginDefinition } from "@betterx/core";
 
+// ─── Meta plugin (must be registered first) ───────────────────────────────────
+import BetterXPlugin from "./BetterX/index.js";
+
+// ─── Library plugins ──────────────────────────────────────────────────────────
+import ProxyFetch from "./ProxyFetch/index.js";
+import SharedObserver from "./SharedObserver/index.js";
+
 import AdBlocker from "./AdBlocker/index.js";
 import BringTwitterBack from "./BringTwitterBack/index.js";
 import ClickEffects from "./ClickEffects/index.js";
@@ -24,6 +31,11 @@ import UsersStatus from "./UsersStatus/index.js";
 // strongly-typed options generic that is invariant due to `this` parameter typing.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const allPlugins: PluginDefinition<any>[] = [
+  // Meta plugin first
+  BetterXPlugin,
+  // Library plugins — dependency order also enforced at runtime
+  ProxyFetch,
+  SharedObserver,
   AdBlocker,
   BringTwitterBack,
   ClickEffects,
@@ -46,6 +58,9 @@ export const allPlugins: PluginDefinition<any>[] = [
 ];
 
 export {
+  BetterXPlugin,
+  ProxyFetch,
+  SharedObserver,
   AdBlocker,
   BringTwitterBack,
   ClickEffects,

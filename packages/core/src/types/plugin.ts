@@ -60,6 +60,25 @@ export type PluginDefinition<O extends PluginOptionDefs = Record<string, never>>
   hidden?: boolean;
   /** Restrict this plugin to a specific platform. Omit for all platforms. */
   platform?: PluginPlatform;
+  /**
+   * Names of plugins this plugin depends on.
+   * Enabling this plugin auto-enables its dependencies first.
+   * Disabling a dependency auto-disables this plugin.
+   */
+  dependencies?: string[];
+  /**
+   * Mark this plugin as a library/utility.
+   * Library plugins are shown separately at the bottom of the plugins list,
+   * cannot be toggled manually, and are auto-enabled/disabled based on
+   * whether any dependent plugins are active.
+   */
+  isLibrary?: boolean;
+  /**
+   * Mark this plugin as a meta/core plugin (e.g. BetterX itself).
+   * Meta plugins are always enabled, pinned to the top of the list,
+   * and cannot be toggled off.
+   */
+  isMeta?: boolean;
   start: (this: Plugin<O>) => void;
   stop?: (this: Plugin<O>) => void;
   renderSettings?: (container: HTMLElement) => void;

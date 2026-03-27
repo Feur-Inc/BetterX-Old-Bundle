@@ -79,6 +79,7 @@ function downloadJson(content: string, filename: string): void {
 
 async function refreshStatus(container: HTMLElement, ctx: BetterXContext) {
   const statusVal = container.querySelector("#cloud-status") as HTMLElement;
+  const statusDot = container.querySelector("#cloud-status-dot") as HTMLElement;
   const loginBtn = container.querySelector("#cloud-login-btn") as HTMLElement;
   const logoutBtn = container.querySelector("#cloud-logout-btn") as HTMLElement;
   const userInfo = container.querySelector("#cloud-user-info") as HTMLElement;
@@ -88,10 +89,16 @@ async function refreshStatus(container: HTMLElement, ctx: BetterXContext) {
 
   const server = serverInput?.value.replace(/\/+$/, "") || localStorage.getItem("bx_cloud_server") || DEFAULT_SERVER;
 
-  const setDisconnected = (label: string) => {
+  const setStatus = (label: string, color: string) => {
     statusVal.textContent = label;
-    statusVal.style.color = label === "Not logged in" ? "var(--betterx-danger)" : "var(--betterx-textColorSecondary)";
-    loginBtn.style.display = "block";
+    statusVal.style.color = color;
+    statusDot.style.background = color;
+  };
+
+  const setDisconnected = (label: string) => {
+    const color = label === "Not logged in" ? "var(--betterx-danger)" : "var(--betterx-textColorSecondary)";
+    setStatus(label, color);
+    loginBtn.style.display = "";
     logoutBtn.style.display = "none";
     userInfo.style.display = "none";
   };
@@ -102,12 +109,10 @@ async function refreshStatus(container: HTMLElement, ctx: BetterXContext) {
     const res = await proxyFetch(`${server}/api/config`);
     const data = res.json as any;
     if (res.ok && data && typeof data === "object" && "plugin_states" in data) {
-      statusVal.textContent = "Connected";
-      statusVal.style.color = "var(--betterx-success)";
+      setStatus("Connected", "var(--betterx-success)");
       loginBtn.style.display = "none";
-      logoutBtn.style.display = "block";
+      logoutBtn.style.display = "";
 
-      // Fetch and display user info
       proxyFetch(`${server}/api/me`).then((meRes) => {
         const me = meRes.json as { username: string; profile_image_url: string | null } | null;
         if (!meRes.ok || !me) return;
@@ -199,13 +204,16 @@ async function setupEvents(container: HTMLElement, ctx: BetterXContext) {
         body: JSON.stringify({ plugin_states: pluginStates, theme_state: themeState }),
       });
 
-      if (res.ok) alert("Successfully pushed to cloud!");
-      else alert("Failed to push to cloud. Are you logged in?");
+      if (res.ok) {
+        ctx.notifications.showSuccess("Successfully pushed to cloud.");
+      } else {
+        ctx.notifications.showError("Failed to push to cloud — are you still logged in?");
+      }
     } catch (e) {
-      alert("Error connecting to cloud server.");
+      ctx.notifications.showError("Could not reach the cloud server.");
     } finally {
       pushBtn.disabled = false;
-      pushBtn.textContent = "Push to Cloud";
+      pushBtn.textContent = "Push to Cloud ↑";
     }
   });
 
@@ -217,21 +225,21 @@ async function setupEvents(container: HTMLElement, ctx: BetterXContext) {
       if (res.ok) {
         const data = res.json as { plugin_states: Record<string, unknown>; theme_state: Record<string, unknown> } | null;
         if (!data || typeof data !== "object" || !("plugin_states" in data) || !("theme_state" in data)) {
-          alert(`Failed to pull from cloud. Server returned an unexpected response:\n\n${res.text.slice(0, 300)}`);
+          ctx.notifications.showError("Unexpected response from server — try again.");
           return;
         }
         await ctx.storage.setPluginStates(data.plugin_states as any);
         await ctx.storage.setThemeState(data.theme_state as any);
-        alert("Successfully pulled from cloud! Page will reload to apply changes.");
-        location.reload();
+        ctx.notifications.showSuccess("Pulled from cloud. Reloading…");
+        setTimeout(() => location.reload(), 1200);
       } else {
-        alert(`Failed to pull from cloud (${res.status}). Are you logged in?`);
+        ctx.notifications.showError(`Pull failed (${res.status}) — are you still logged in?`);
       }
     } catch (e) {
-      alert(`Error pulling from cloud: ${e instanceof Error ? e.message : String(e)}`);
+      ctx.notifications.showError(`Pull failed: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       pullBtn.disabled = false;
-      pullBtn.textContent = "Pull from Cloud";
+      pullBtn.textContent = "Pull from Cloud ↓";
     }
   });
 
@@ -247,72 +255,72 @@ function init(container: HTMLElement, ctx: BetterXContext): void {
   const savedServer = localStorage.getItem("bx_cloud_server") || DEFAULT_SERVER;
 
   container.innerHTML = `
-    <div class="betterx-cloud-container">
-      <div class="betterx-cloud-header">
-        <h2>Cloud Sync</h2>
-        <p>Sync your BetterX settings across devices.</p>
-      </div>
+    <div class="bx-cloud-grid">
 
-      <div class="betterx-cloud-settings card">
-        <h3>Connection</h3>
-        <div class="betterx-option">
-          <div class="betterx-option-label-group">
-            <div class="betterx-option-label">Server URL</div>
-            <div class="betterx-option-description">The URL of your BetterX cloud-sync instance.</div>
-          </div>
-          <div class="betterx-option-control">
-            <input type="text" id="cloud-server-url" class="betterx-input-text" value="${savedServer}" placeholder="${DEFAULT_SERVER}">
-          </div>
+      <!-- Account / Status -->
+      <div class="bx-cloud-card bx-cloud-account-card">
+        <div class="bx-cloud-card-title">Account</div>
+        <div class="bx-cloud-status-row">
+          <span id="cloud-status-dot" class="bx-cloud-status-dot"></span>
+          <span id="cloud-status" class="bx-cloud-status-text">Checking…</span>
         </div>
-      </div>
-
-      <div class="betterx-cloud-status-card">
-        <div class="betterx-cloud-status-info">
-          <span class="betterx-status-label">Status:</span>
-          <span id="cloud-status" class="betterx-status-value">Checking...</span>
+        <div id="cloud-user-info" style="display:none;" class="bx-cloud-user-row">
+          <img id="cloud-user-pfp" src="" alt="" class="bx-cloud-pfp">
+          <span id="cloud-user-name" class="bx-cloud-username"></span>
         </div>
-        <div id="cloud-user-info" style="display:none;" class="betterx-cloud-user-info">
-          <img id="cloud-user-pfp" src="" alt="" class="betterx-cloud-pfp">
-          <span id="cloud-user-name" class="betterx-cloud-username"></span>
-        </div>
-        <div class="betterx-cloud-actions">
-          <button id="cloud-login-btn" class="betterx-button betterx-button-primary" style="display: none;">Login with Twitter</button>
-          <button id="cloud-logout-btn" class="betterx-button betterx-button-danger" style="display: none;">Logout</button>
+        <div class="bx-cloud-auth-actions">
+          <button id="cloud-login-btn" class="betterx-button betterx-button-primary" style="display:none;">Login with Twitter</button>
+          <button id="cloud-logout-btn" class="betterx-button betterx-button-danger" style="display:none;">Logout</button>
         </div>
       </div>
 
-      <div class="betterx-cloud-sync-ops card">
-        <h3>Manual Sync</h3>
-        <div class="betterx-sync-buttons">
-          <button id="cloud-push-btn" class="betterx-button">Push to Cloud</button>
-          <button id="cloud-pull-btn" class="betterx-button">Pull from Cloud</button>
+      <!-- Connection -->
+      <div class="bx-cloud-card bx-cloud-connection-card">
+        <div class="bx-cloud-card-title">Connection</div>
+        <div class="bx-cloud-field">
+          <label class="bx-cloud-field-label">Server URL</label>
+          <div class="bx-cloud-field-desc">The URL of your BetterX cloud-sync instance.</div>
+          <input type="text" id="cloud-server-url" class="betterx-input-text bx-cloud-url-input" value="${savedServer}" placeholder="${DEFAULT_SERVER}">
         </div>
-        <p class="betterx-help-text">Pushing will overwrite your cloud settings. Pulling will overwrite your local settings.</p>
       </div>
 
-      <div class="betterx-cloud-sync-ops card">
-        <h3>Local Sync</h3>
-        <div class="betterx-sync-buttons">
-          <button id="cloud-export-btn" class="betterx-button">Export JSON</button>
-          <button id="cloud-import-btn" class="betterx-button">Import JSON</button>
-        </div>
-        <p class="betterx-help-text">Export or import your settings from a local JSON file.</p>
-      </div>
+      <!-- Ops row -->
+      <div class="bx-cloud-ops-row">
 
-      <div class="betterx-cloud-settings card">
-        <h3>Preferences</h3>
-        <div class="betterx-option">
-          <div class="betterx-option-label-group">
-            <div class="betterx-option-label">Auto-Sync</div>
-            <div class="betterx-option-description">Automatically sync changes to the cloud.</div>
-          </div>
-          <div class="betterx-option-control">
-            <label class="betterx-toggle">
-              <input type="checkbox" id="cloud-autosync-toggle">
-              <span class="betterx-toggle-slider"></span>
-            </label>
+        <div class="bx-cloud-card bx-cloud-op-card">
+          <div class="bx-cloud-card-title">Cloud Sync</div>
+          <p class="betterx-help-text">Overwrite cloud ↔ local settings.</p>
+          <div class="bx-cloud-op-actions">
+            <button id="cloud-push-btn" class="betterx-button betterx-button-primary bx-full-btn">Push to Cloud ↑</button>
+            <button id="cloud-pull-btn" class="betterx-button bx-full-btn">Pull from Cloud ↓</button>
           </div>
         </div>
+
+        <div class="bx-cloud-card bx-cloud-op-card">
+          <div class="bx-cloud-card-title">Local Backup</div>
+          <p class="betterx-help-text">Export or import settings as a JSON file.</p>
+          <div class="bx-cloud-op-actions">
+            <button id="cloud-export-btn" class="betterx-button bx-full-btn">Export JSON</button>
+            <button id="cloud-import-btn" class="betterx-button bx-full-btn">Import JSON</button>
+          </div>
+        </div>
+
+        <div class="bx-cloud-card bx-cloud-op-card">
+          <div class="bx-cloud-card-title">Preferences</div>
+          <div class="betterx-option" style="border:none;padding:0;margin-top:8px;">
+            <div class="betterx-option-label-group">
+              <div class="betterx-option-label">Auto-Sync</div>
+              <div class="betterx-option-description">Automatically sync changes to the cloud.</div>
+            </div>
+            <div class="betterx-option-control">
+              <label class="betterx-toggle">
+                <input type="checkbox" id="cloud-autosync-toggle">
+                <span class="betterx-toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   `;

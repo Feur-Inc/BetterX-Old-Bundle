@@ -1,6 +1,12 @@
 import type { SettingsTab, BetterXContext } from "../tab-registry.js";
-import type { Plugin, PluginOptionDef, PluginOptionDefs } from "../../types/plugin.js";
+import type { Plugin, PluginOptionDef } from "../../types/plugin.js";
 import { OptionType } from "../../types/plugin.js";
+import { openContributorModal } from "../contributor-modal.js";
+
+let _openDetailFn: ((plugin: Plugin, onBack?: () => void) => void) | null = null;
+export function openPluginDetail(plugin: Plugin, onBack?: () => void): void {
+  _openDetailFn?.(plugin, onBack);
+}
 
 // ─── Plugins Tab ──────────────────────────────────────────────────────────────
 
@@ -127,11 +133,182 @@ function platformLabel(platform: string): string {
   return platform;
 }
 
-function renderPlugin(plugin: Plugin, ctx: BetterXContext): HTMLElement {
+// Renders authors + settings into an arbitrary container (reused by inline body and detail panel)
+function renderPluginBody(container: HTMLElement, plugin: Plugin, ctx: BetterXContext): void {
+  if (plugin.authors && plugin.authors.length > 0) {
+    const authors = document.createElement("div");
+    authors.className = "betterx-plugin-authors";
+    for (const author of plugin.authors) {
+      const badge = document.createElement("button");
+      badge.className = "betterx-author-badge";
+      badge.innerHTML = `
+        <img class="betterx-author-avatar" alt="${escHtml(author.name)}">
+        @${escHtml(author.handle)}
+      `;
+      badge.addEventListener("click", () => openContributorModal(author, ctx));
+      const avatar = badge.querySelector<HTMLImageElement>("img");
+      if (avatar) {
+        avatar.addEventListener("error", () => { avatar.style.display = "none"; });
+        const url = `https://unavatar.io/twitter/${author.handle}`;
+        if (ctx.proxyImage) {
+          ctx.proxyImage(url).then((src) => { avatar.src = src; }).catch(() => { avatar.src = url; });
+        } else {
+          avatar.src = url;
+        }
+      }
+      authors.appendChild(badge);
+    }
+    container.appendChild(authors);
+  }
+
+  if (plugin.renderSettings) {
+    plugin.renderSettings(container);
+  } else {
+    renderOptions(container, plugin, ctx);
+  }
+}
+
+// Full-panel detail view — shown when any plugin card is clicked
+function renderDetailPanel(
+  detailView: HTMLElement,
+  plugin: Plugin,
+  ctx: BetterXContext,
+  onBack: () => void,
+  openDetail: (plugin: Plugin) => void,
+): void {
+  detailView.innerHTML = "";
+
+  const backBtn = document.createElement("button");
+  backBtn.className = "betterx-detail-back";
+  backBtn.innerHTML = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3L5 8l5 5"/></svg> Plugins`;
+  backBtn.addEventListener("click", onBack);
+
+  const hero = document.createElement("div");
+  hero.className = "betterx-detail-hero";
+
+  const heroTop = document.createElement("div");
+  heroTop.className = "betterx-detail-hero-top";
+
+  const nameEl = document.createElement("div");
+  nameEl.className = "betterx-detail-name";
+  nameEl.textContent = plugin.name;
+
+  if (plugin.unavailable && plugin.platform) {
+    const badge = document.createElement("span");
+    badge.className = "betterx-platform-badge";
+    badge.textContent = platformLabel(plugin.platform);
+    nameEl.appendChild(badge);
+  }
+
+  if (plugin.isLibrary) {
+    const autoBadge = document.createElement("span");
+    autoBadge.className = plugin.enabled
+      ? "betterx-auto-badge betterx-auto-badge-on"
+      : "betterx-auto-badge betterx-auto-badge-off";
+    autoBadge.textContent = plugin.enabled ? "Active" : "Standby";
+    heroTop.append(nameEl, autoBadge);
+  } else if (plugin.isMeta) {
+    if (plugin.version) {
+      const vBadge = document.createElement("span");
+      vBadge.className = "betterx-version-badge";
+      vBadge.textContent = `v${plugin.version}`;
+      heroTop.append(nameEl, vBadge);
+    } else {
+      heroTop.append(nameEl);
+    }
+  } else {
+    const toggle = document.createElement("label");
+    toggle.className = "betterx-toggle";
+    const toggleInput = document.createElement("input");
+    toggleInput.type = "checkbox";
+    toggleInput.checked = plugin.enabled;
+    toggleInput.disabled = !!plugin.unavailable;
+    const toggleSlider = document.createElement("span");
+    toggleSlider.className = "betterx-toggle-slider";
+    toggle.append(toggleInput, toggleSlider);
+    toggleInput.addEventListener("change", () => {
+      ctx.pluginManager.toggle(plugin.name).catch(console.error);
+    });
+    heroTop.append(nameEl, toggle);
+  }
+  hero.appendChild(heroTop);
+
+  if (plugin.description) {
+    const descEl = document.createElement("div");
+    descEl.className = "betterx-detail-description";
+    descEl.textContent = plugin.description;
+    hero.appendChild(descEl);
+  }
+
+  const body = document.createElement("div");
+  body.className = "betterx-detail-body";
+
+  // ── Dependency info ────────────────────────────────────────────────────────
+  const deps = plugin.dependencies ?? [];
+  const dependents = ctx.pluginManager.getDependents(plugin.name);
+
+  if (deps.length > 0 || dependents.length > 0) {
+    const depSection = document.createElement("div");
+    depSection.className = "betterx-detail-deps";
+
+    const makeBadge = (name: string, label: string) => {
+      const target = ctx.pluginManager.get(name);
+      const btn = document.createElement("button");
+      btn.className = "betterx-dep-badge" + (target?.enabled ? " betterx-dep-badge-on" : " betterx-dep-badge-off");
+      btn.textContent = label;
+      if (target) {
+        btn.addEventListener("click", () => openDetail(target));
+      } else {
+        btn.disabled = true;
+        btn.title = "Plugin not found";
+      }
+      return btn;
+    };
+
+    if (deps.length > 0) {
+      const row = document.createElement("div");
+      row.className = "betterx-detail-deps-row";
+      const lbl = document.createElement("span");
+      lbl.className = "betterx-detail-deps-label";
+      lbl.textContent = "Requires";
+      row.appendChild(lbl);
+      for (const d of deps) row.appendChild(makeBadge(d, d));
+      depSection.appendChild(row);
+    }
+
+    if (dependents.length > 0) {
+      const row = document.createElement("div");
+      row.className = "betterx-detail-deps-row";
+      const lbl = document.createElement("span");
+      lbl.className = "betterx-detail-deps-label";
+      lbl.textContent = "Required by";
+      row.appendChild(lbl);
+      for (const d of dependents) row.appendChild(makeBadge(d, d));
+      depSection.appendChild(row);
+    }
+
+    body.appendChild(depSection);
+  }
+
+  renderPluginBody(body, plugin, ctx);
+
+  detailView.append(backBtn, hero, body);
+}
+
+function renderPlugin(
+  plugin: Plugin,
+  ctx: BetterXContext,
+  onOpenDetail: (plugin: Plugin) => void,
+): HTMLElement {
   const item = document.createElement("div");
   item.className = plugin.unavailable
     ? "betterx-plugin-item betterx-plugin-item-unavailable"
+    : plugin.isMeta
+    ? "betterx-plugin-item betterx-plugin-item-meta"
+    : plugin.isLibrary
+    ? "betterx-plugin-item betterx-plugin-item-library"
     : "betterx-plugin-item";
+  item.dataset.pluginName = plugin.name;
 
   const header = document.createElement("div");
   header.className = "betterx-plugin-header";
@@ -156,30 +333,47 @@ function renderPlugin(plugin: Plugin, ctx: BetterXContext): HTMLElement {
 
   info.append(nameRow, desc);
 
-  // Toggle
-  const toggle = document.createElement("label");
-  toggle.className = "betterx-toggle";
-  const input = document.createElement("input");
-  input.type = "checkbox";
-  input.checked = plugin.enabled;
-  input.disabled = !!plugin.unavailable;
-  const slider = document.createElement("span");
-  slider.className = "betterx-toggle-slider";
-  toggle.append(input, slider);
-  input.addEventListener("change", () => {
-    ctx.pluginManager.toggle(plugin.name).catch(console.error);
-  });
+  if (plugin.isLibrary) {
+    const autoBadge = document.createElement("span");
+    autoBadge.className = plugin.enabled
+      ? "betterx-auto-badge betterx-auto-badge-on"
+      : "betterx-auto-badge betterx-auto-badge-off";
+    autoBadge.textContent = plugin.enabled ? "Active" : "Standby";
+    header.append(info, autoBadge);
+  } else if (plugin.isMeta) {
+    if (plugin.version) {
+      const vBadge = document.createElement("span");
+      vBadge.className = "betterx-version-badge";
+      vBadge.textContent = `v${plugin.version}`;
+      header.append(info, vBadge);
+    } else {
+      header.append(info);
+    }
+  } else {
+    const toggle = document.createElement("label");
+    toggle.className = "betterx-toggle";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = plugin.enabled;
+    input.disabled = !!plugin.unavailable;
+    const slider = document.createElement("span");
+    slider.className = "betterx-toggle-slider";
+    toggle.append(input, slider);
+    input.addEventListener("change", () => {
+      ctx.pluginManager.toggle(plugin.name).catch(console.error);
+    });
+    header.append(info, toggle);
+  }
 
-  header.append(info, toggle);
   item.appendChild(header);
 
-  // Expand body on click
   const hasDetails =
     (plugin.authors && plugin.authors.length > 0) ||
     (plugin.options && Object.keys(plugin.options).length > 0) ||
     plugin.renderSettings;
 
   if (hasDetails) {
+    // Inline body — only shown in list mode
     const body = document.createElement("div");
     body.className = "betterx-plugin-body";
     body.style.display = "none";
@@ -225,9 +419,8 @@ function renderPlugin(plugin: Plugin, ctx: BetterXContext): HTMLElement {
 
     header.style.cursor = "pointer";
     header.addEventListener("click", (e) => {
-      // Don't collapse when toggling
       if ((e.target as HTMLElement).closest(".betterx-toggle")) return;
-      body.style.display = body.style.display === "none" ? "" : "none";
+      onOpenDetail(plugin);
     });
   }
 
@@ -242,7 +435,10 @@ export const PluginsTab: SettingsTab = {
   initialize(container: HTMLElement, ctx: BetterXContext): void {
     container.innerHTML = "";
 
-    // Toolbar: search + view toggle
+    // ── List view ────────────────────────────────────────────────────────────
+    const listView = document.createElement("div");
+    listView.className = "betterx-plugin-list-view";
+
     const toolbar = document.createElement("div");
     toolbar.className = "betterx-plugins-toolbar";
 
@@ -272,9 +468,53 @@ export const PluginsTab: SettingsTab = {
     const list = document.createElement("div");
     list.className = `betterx-plugin-list${isGrid ? " betterx-grid-view" : ""}`;
 
+    // ── Detail view ──────────────────────────────────────────────────────────
+    const detailView = document.createElement("div");
+    detailView.className = "betterx-plugin-detail";
+    detailView.style.display = "none";
+
+    const openDetail = (plugin: Plugin, customOnBack?: () => void) => {
+      listView.style.display = "none";
+      renderDetailPanel(detailView, plugin, ctx, customOnBack ?? (() => {
+        detailView.style.display = "none";
+        listView.style.display = "";
+      }), openDetail);
+      detailView.style.display = "";
+    };
+    _openDetailFn = openDetail;
+
+    // ── Render plugins ───────────────────────────────────────────────────────
     const plugins = ctx.pluginManager.getAll();
-    const items = plugins.map((p) => ({ plugin: p, el: renderPlugin(p, ctx) }));
-    for (const { el } of items) list.appendChild(el);
+    const meta = plugins.filter((p) => p.isMeta);
+    const regular = plugins.filter((p) => !p.isMeta && !p.isLibrary);
+    const libraries = plugins.filter((p) => p.isLibrary);
+
+    const items: { plugin: Plugin; el: HTMLElement }[] = [];
+
+    for (const p of meta) {
+      const el = renderPlugin(p, ctx, openDetail);
+      items.push({ plugin: p, el });
+      list.appendChild(el);
+    }
+
+    for (const p of regular) {
+      const el = renderPlugin(p, ctx, openDetail);
+      items.push({ plugin: p, el });
+      list.appendChild(el);
+    }
+
+    let libSep: HTMLElement | null = null;
+    if (libraries.length > 0) {
+      libSep = document.createElement("div");
+      libSep.className = "betterx-library-section-label";
+      libSep.textContent = "Libraries";
+      list.appendChild(libSep);
+      for (const p of libraries) {
+        const el = renderPlugin(p, ctx, openDetail);
+        items.push({ plugin: p, el });
+        list.appendChild(el);
+      }
+    }
 
     listBtn.addEventListener("click", () => {
       list.classList.remove("betterx-grid-view");
@@ -292,23 +532,28 @@ export const PluginsTab: SettingsTab = {
 
     search.addEventListener("input", () => {
       const q = search.value.toLowerCase();
+      let anyLibVisible = false;
       for (const { plugin, el } of items) {
         const match =
+          plugin.isMeta ||
           plugin.name.toLowerCase().includes(q) ||
           (plugin.description?.toLowerCase().includes(q) ?? false);
         el.style.display = match ? "" : "none";
+        if (plugin.isLibrary && match) anyLibVisible = true;
       }
+      if (libSep) libSep.style.display = anyLibVisible ? "" : "none";
     });
 
-    container.append(toolbar, list);
+    listView.append(toolbar, list);
+    container.append(listView, detailView);
   },
 
   onActivate(container: HTMLElement, ctx: BetterXContext): void {
-    // Refresh toggle states (plugin could have been toggled programmatically)
-    const plugins = ctx.pluginManager.getAll();
     const items = container.querySelectorAll<HTMLElement>(".betterx-plugin-item");
-    items.forEach((item, i) => {
-      const p = plugins[i];
+    items.forEach((item) => {
+      const name = item.dataset.pluginName;
+      if (!name) return;
+      const p = ctx.pluginManager.get(name);
       if (!p) return;
       const input = item.querySelector<HTMLInputElement>(".betterx-toggle input");
       if (input) input.checked = p.enabled;

@@ -1,4 +1,5 @@
 import { definePlugin, Devs } from "@betterx/core";
+import { DOMObserver } from "../SharedObserver/index.js";
 
 // UsersStatus: Shows BetterX badge on profiles.
 // Note: OAuth/cloud sync is removed per plan (external server dependency).
@@ -6,13 +7,14 @@ import { definePlugin, Devs } from "@betterx/core";
 
 const BADGE_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color:#1d9bf0;vertical-align:middle;margin-left:4px;" title="BetterX user"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>`;
 
-let usersStatusObserver: MutationObserver | null = null;
+let usersStatusUnsub: (() => void) | null = null;
 
 export default definePlugin({
   name: "UsersStatus",
   description: "Shows a BetterX badge on user profiles that use BetterX",
   authors: [Devs.TPM28],
   requiresRestart: true,
+  dependencies: ["SharedObserver"],
 
   start() {
     const inject = (): void => {
@@ -28,14 +30,13 @@ export default definePlugin({
       }
     };
 
-    usersStatusObserver = new MutationObserver(inject);
-    usersStatusObserver.observe(document.body, { childList: true, subtree: true });
+    usersStatusUnsub = DOMObserver.subscribe(inject);
     inject();
   },
 
   stop() {
-    usersStatusObserver?.disconnect();
-    usersStatusObserver = null;
+    usersStatusUnsub?.();
+    usersStatusUnsub = null;
     document.querySelectorAll(".bx-badge").forEach((el) => el.remove());
   },
 });
