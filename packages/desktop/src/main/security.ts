@@ -38,6 +38,8 @@ export function setupCSP(): void {
             .replace(/'nonce-[^']+'\s*/g, "")
             // Allow any HTTPS image - plugins load from GitHub, cataas, unavatar, etc.
             .replace("img-src", "img-src betterx: https:")
+            // Allow plugins to reach external APIs (e.g. bsky.social for BlueSkyFeed).
+            .replace(/\bconnect-src\b/, "connect-src https://bsky.social")
         );
       }
     }

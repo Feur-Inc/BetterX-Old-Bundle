@@ -196,12 +196,12 @@ app.whenReady().then(async () => {
     return cookies[0]?.value ? `bx_session=${cookies[0].value}` : "";
   }
 
-  ipcMain.handle("bx:cloud:fetch", async (_event, serverUrl: string, path: string, options?: { method?: string; body?: string }) => {
+  ipcMain.handle("bx:cloud:fetch", async (_event, serverUrl: string, path: string, options?: { method?: string; body?: string; headers?: Record<string, string> }) => {
     try {
       const cookie = await getCloudCookie(serverUrl);
-      const headers: Record<string, string> = {};
+      const headers: Record<string, string> = { ...options?.headers };
       if (cookie) headers["Cookie"] = cookie;
-      if (options?.body) headers["Content-Type"] = "application/json";
+      if (options?.body && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
       const res = await fetch(`${serverUrl}${path}`, {
         method: options?.method ?? "GET",
         headers,

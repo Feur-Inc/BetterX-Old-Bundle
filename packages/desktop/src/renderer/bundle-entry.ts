@@ -50,17 +50,18 @@ async function init(): Promise<void> {
   // 4. Init themes
   await themeManager.initialize();
 
-  // 5. Init plugins
-  await pluginManager.initialize(allPlugins, "desktop");
-
-  // 6. Accent color
-  applyAccentColor();
-
-  // Wire up proxy fetch through Electron's main process (bypasses X's CSP)
+  // 5. Wire up proxy fetch BEFORE initializing plugins so proxyFetch() works
+  //    inside plugin start() hooks (cloudFetch routes through main process, bypassing X's CSP)
   setFetchProxy(async (url: string, init?: ProxyFetchInit) => {
     const u = new URL(url);
     return window.electronAPI!.cloudFetch(u.origin, u.pathname + u.search, init);
   });
+
+  // 6. Init plugins
+  await pluginManager.initialize(allPlugins, "desktop");
+
+  // 7. Accent color
+  applyAccentColor();
 
   // 7. Register tabs
   const logoUrl = "betterx://assets/icon.svg";
